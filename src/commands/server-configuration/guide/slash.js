@@ -5,8 +5,16 @@ const { RANKS } = require('../../../utils/levelSystem');
 
 const RULES_CHANNEL_ID = '1552775123222794250';
 const GENERAL_CHANNEL_ID = '1512976564541849760';
+const BOOSTER_ROLE_ID = '1517433768045183132';
+const UNVERIFIED_ROLE_ID = process.env.UNVERIFIED_ROLE_ID?.trim() || '1558337666729115678';
+const RANK_COLORS = {
+    'Leyenda Cimarrona': 'Custom',
+    'Orgullo Cimarrón': 'Golden',
+    'Cimarrón Veterano': 'Crimson',
+    'Cimarrón Avanzado': 'Holo',
+};
 
-function buildGuideEmbeds(guild) {
+function buildInfoEmbeds(guild) {
     const countingId = getCountingConfig(guild.id).channel_id;
     const voice = getVoicemasterConfig(guild.id);
     const welcomeId = getWelcomeConfig(guild.id).channel_id;
@@ -16,10 +24,10 @@ function buildGuideEmbeds(guild) {
 
     const welcomeEmbed = new EmbedBuilder()
         .setColor(embeds.NEUTRAL_COLOR)
-        .setTitle('✦ Bienvenido a Nexo UABC')
+        .setTitle('Bienvenido a Nexo UABC')
         .setDescription(
             `Esta es la comunidad de Discord para convivir entre cimarrones. Empieza por <#${RULES_CHANNEL_ID}> y respeta las [normas de Discord](https://discord.com/guidelines).\n\n` +
-            `Si acabas de entrar, revisa el MD de **Cima** para verificar tu correo institucional. También puedes usar \`/verificar\`. Al completar el proceso se quita **Sin Verificar** y recibes **Aspirante**.\n\n` +
+            `Si acabas de entrar, revisa el MD que **Cima** te envía automáticamente para verificar tu correo institucional. Al completar el proceso se quita <@&${UNVERIFIED_ROLE_ID}> y recibes <@&${RANKS[0].id}>.\n\n` +
             `**Dónde ir**\n` +
             `• <#${GENERAL_CHANNEL_ID}> · plática y conoce a la comunidad.\n` +
             `• ${counting} · cuenta en orden sin repetir turno; un error reinicia la cuenta.\n` +
@@ -29,10 +37,9 @@ function buildGuideEmbeds(guild) {
 
     const commandsEmbed = new EmbedBuilder()
         .setColor(embeds.NEUTRAL_COLOR)
-        .setTitle('⌘ Comandos de Cima')
+        .setTitle('Comandos de Cima')
         .setDescription(
             `**Para empezar**\n` +
-            `• \`/verificar\` · recibe por MD los pasos de verificación.\n` +
             `• \`/nivel\` · mira tu nivel y progreso; puedes consultar a otra persona.\n` +
             `• \`/top\` · elige el top de niveles o de counting.\n\n` +
             `**En la comunidad**\n` +
@@ -48,27 +55,30 @@ function buildGuideEmbeds(guild) {
 
     const ranksEmbed = new EmbedBuilder()
         .setColor(embeds.NEUTRAL_COLOR)
-        .setTitle('✧ Rangos y niveles')
+        .setTitle('Rangos y niveles')
         .setDescription(
-            `**Sin Verificar** limita el acceso hasta confirmar tu correo. Al verificarte recibes **Aspirante**. Después, Cima cambia automáticamente tu rango al subir de nivel:\n\n` +
-            RANKS.map(rank => `• **Nivel ${rank.level}** · ${rank.name}`).join('\n') +
-            `\n\nCada mensaje válido fuera de counting da **20 XP**, como máximo una vez por minuto. Cada **10 números válidos** en counting dan otros **20 XP**. Usa \`/nivel\` para ver tu progreso. El rol **Booster** es independiente y no se reemplaza al subir de rango.`
+            `<@&${UNVERIFIED_ROLE_ID}> limita el acceso hasta confirmar tu correo. Al verificarte recibes <@&${RANKS[0].id}>. Después, Cima cambia automáticamente tu rango al subir de nivel:\n\n` +
+            [...RANKS].reverse().map(rank => `• <@&${rank.id}>${RANK_COLORS[rank.name] ? ` (**${RANK_COLORS[rank.name]}**)` : ''} · nivel **${rank.level}**`).join('\n') +
+            `\n\nCada mensaje válido fuera de counting da **20 XP**, como máximo una vez por minuto. Cada **10 números válidos** en counting dan otros **20 XP**. Usa \`/nivel\` para ver tu progreso. <@&${BOOSTER_ROLE_ID}> es independiente y no se reemplaza al subir de rango.`
         );
 
-    const verifyEmbed = new EmbedBuilder()
+    return [welcomeEmbed, commandsEmbed, ranksEmbed];
+}
+
+function buildVerificationEmbed() {
+    return new EmbedBuilder()
         .setColor(embeds.NEUTRAL_COLOR)
-        .setTitle('✉ Verificación UABC')
+        .setTitle('Verificación de Nexo UABC')
         .setDescription(
-            `Debido a que entraron varias cuentas alternativas a causar desorden, usamos la verificación por correo institucional para cuidar la comunidad.\n\n` +
+            `Debido a que entraron varias cuentas alternativas a causar desorden, usamos la verificación por correo institucional para cuidar Nexo UABC. Este canal es solo informativo; la verificación se hace por mensaje directo con **Cima**.\n\n` +
             `**Cómo verificarte**\n` +
-            `1. Abre el MD que te envía **Cima** al entrar. Si no llegó, activa los MD del servidor y usa \`/verificar\`.\n` +
+            `1. Al entrar, **Cima** te envía un MD automáticamente. Ábrelo.\n` +
             `2. Pulsa **Verificar mi correo** y escribe tu dirección **@uabc.edu.mx**.\n` +
             `3. Revisa tu bandeja y spam. Recibirás un código de seis dígitos que caduca en **10 minutos**.\n` +
-            `4. Pulsa **Ingresar código** en el MD. Cima te dará **Aspirante** y quitará **Sin Verificar**.\n\n` +
-            `**Tus datos:** nunca te pedimos contraseñas, matrícula ni acceso a tu correo. El código se guarda como hash, no en texto plano. Para impedir verificaciones duplicadas, sí guardamos tu correo institucional vinculado a tu ID de Discord y la fecha de verificación.`
-        );
-
-    return [welcomeEmbed, commandsEmbed, ranksEmbed, verifyEmbed];
+            `4. Pulsa **Ingresar código** en el MD. Cima te dará <@&${RANKS[0].id}> y quitará <@&${UNVERIFIED_ROLE_ID}>.\n\n` +
+            `Si no recibes el MD, permite los mensajes directos de miembros de este servidor y avisa al equipo de moderación.`
+        )
+        .setFooter({ text: 'Privacidad: no pedimos contraseñas ni datos académicos. Conservamos tu correo, ID de Discord y fecha de verificación para evitar cuentas duplicadas; el código se guarda como hash.' });
 }
 
 module.exports = {
@@ -78,12 +88,15 @@ module.exports = {
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
         .addSubcommand(subcommand => subcommand
             .setName('setup')
-            .setDescription('Publica los embeds de la guía en este canal')
-            .addIntegerOption(option => option
-                .setName('embeds')
-                .setDescription('Cantidad de embeds en orden (1 a 4; por defecto, todos)')
-                .setMinValue(1)
-                .setMaxValue(4))),
+            .setDescription('Publica información o verificación en este canal')
+            .addStringOption(option => option
+                .setName('tipo')
+                .setDescription('Qué tipo de guía quieres publicar')
+                .setRequired(true)
+                .addChoices(
+                    { name: 'Información', value: 'info' },
+                    { name: 'Verificación', value: 'verificacion' },
+                ))),
 
     async execute(interaction) {
         if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
@@ -93,11 +106,13 @@ module.exports = {
             });
         }
 
-        const embedCount = interaction.options.getInteger('embeds') ?? 4;
+        const type = interaction.options.getString('tipo', true);
         await interaction.deferReply({ ephemeral: true });
-        await interaction.channel.send({ embeds: buildGuideEmbeds(interaction.guild).slice(0, embedCount) });
-        await interaction.editReply({ embeds: [embeds.success(`Guía publicada en ${interaction.channel}.`)] });
+        const selected = type === 'verificacion' ? [buildVerificationEmbed()] : buildInfoEmbeds(interaction.guild);
+        await interaction.channel.send({ embeds: selected, allowedMentions: { parse: [] } });
+        await interaction.editReply({ embeds: [embeds.success(`Guía de ${type === 'info' ? 'información' : 'verificación'} publicada en ${interaction.channel}.`)] });
     },
 
-    buildGuideEmbeds,
+    buildInfoEmbeds,
+    buildVerificationEmbed,
 };

@@ -18,7 +18,7 @@ function buildWelcomeDescription(guild) {
     let description = 'Bienvenido a Nexo UABC ⸜(｡˃ ᵕ ˂ )⸝';
 
     if (guild.id === UABC_GUILD_ID) {
-        description += '\n\nRevisa tus MD de **Cima** para verificar tu correo institucional. Si no te llegó el mensaje, usa `/verificar`. Al verificarte recibirás **Aspirante** y podrás empezar a subir de nivel con `/nivel`.';
+        description += '\n\nRevisa el MD que **Cima** te envía al entrar para verificar tu correo institucional. Al verificarte recibirás **Aspirante** y podrás empezar a subir de nivel con `/nivel`.';
     }
 
     if (featured.length) {
