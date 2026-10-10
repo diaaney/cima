@@ -163,7 +163,7 @@ $svgContent = @'
     </radialGradient>
   </defs>
   <rect width="1920" height="1080" fill="url(#background)"/>
-  <image href="data:image/png;base64,__MARK_DATA__" x="580" y="230" width="760" height="376"/>
+  <image href="data:image/png;base64,__MARK_DATA__" x="580" y="290" width="760" height="376"/>
   <rect x="405" y="742" width="1110" height="172" rx="86" fill="#295540" fill-opacity=".44" stroke="#9cc2a6" stroke-opacity=".26" stroke-width="2"/>
   <path d="__TAGLINE_PATH__" fill="#fbfaf7"/>
   <image href="data:image/svg+xml;base64,__SYMBOL_DATA__" x="__SYMBOL_X__" y="764" width="__SYMBOL_WIDTH__" height="__SYMBOL_HEIGHT__"/>
