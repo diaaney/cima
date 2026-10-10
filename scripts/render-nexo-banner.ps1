@@ -8,8 +8,8 @@ Add-Type -AssemblyName System.Drawing
 $assets = Join-Path $ProjectRoot 'assets'
 $source = Join-Path $assets 'nexo-uabc-banner-verde.png'
 $mark = Join-Path $assets 'uabc-mark-white.png'
-$svg = Join-Path $assets 'nexo-uabc-banner-esports.svg'
-$png = Join-Path $assets 'nexo-uabc-banner-esports.png'
+$svg = Join-Path $assets 'nexo-uabc-banner-exo.svg'
+$png = Join-Path $assets 'nexo-uabc-banner-exo.png'
 
 if (-not (Test-Path -LiteralPath $source)) { throw "Missing source isotipo: $source" }
 
@@ -67,23 +67,73 @@ public static class UabcMarkExtractor {
 }
 '@
 
-Add-Type -TypeDefinition $extractor -ReferencedAssemblies System.Drawing
+if (-not ('UabcMarkExtractor' -as [type])) {
+    Add-Type -TypeDefinition $extractor -ReferencedAssemblies System.Drawing
+}
 [UabcMarkExtractor]::Extract($source, $mark)
+$markData = [Convert]::ToBase64String([System.IO.File]::ReadAllBytes($mark))
+
+$textOutliner = @'
+using System;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Drawing.Text;
+using System.Globalization;
+using System.Text;
+
+public static class SvgTextOutliner {
+    private static string Coord(float value) { return value.ToString("0.###", CultureInfo.InvariantCulture); }
+
+    public static string Make(string fontPath, string value, float x, float centerY, float height) {
+        using (var fonts = new PrivateFontCollection()) {
+            fonts.AddFontFile(fontPath);
+            using (var path = new GraphicsPath()) {
+                path.AddString(value, fonts.Families[0], (int)FontStyle.Regular, 300f,
+                    new PointF(0, 0), StringFormat.GenericTypographic);
+                var bounds = path.GetBounds();
+                float scale = height / bounds.Height;
+                float top = centerY - height / 2f;
+                var points = path.PathPoints;
+                var types = path.PathTypes;
+                var svg = new StringBuilder();
+                for (int i = 0; i < points.Length; i++) {
+                    int type = types[i] & 7;
+                    if (type == 0) {
+                        svg.Append("M ").Append(Coord(x + (points[i].X - bounds.X) * scale)).Append(' ')
+                            .Append(Coord(top + (points[i].Y - bounds.Y) * scale)).Append(' ');
+                    } else if (type == 1) {
+                        svg.Append("L ").Append(Coord(x + (points[i].X - bounds.X) * scale)).Append(' ')
+                            .Append(Coord(top + (points[i].Y - bounds.Y) * scale)).Append(' ');
+                    } else if (type == 3 && i + 2 < points.Length) {
+                        for (int j = 0; j < 3; j++) {
+                            svg.Append(j == 0 ? "C " : " ")
+                                .Append(Coord(x + (points[i + j].X - bounds.X) * scale)).Append(' ')
+                                .Append(Coord(top + (points[i + j].Y - bounds.Y) * scale));
+                        }
+                        i += 2;
+                        svg.Append(' ');
+                    }
+                    if ((types[i] & 128) != 0) svg.Append("Z ");
+                }
+                return svg.ToString();
+            }
+        }
+    }
+}
+'@
+if (-not ('SvgTextOutliner' -as [type])) {
+    Add-Type -TypeDefinition $textOutliner -ReferencedAssemblies System.Drawing
+}
+$nexoPath = [SvgTextOutliner]::Make((Join-Path $assets 'fonts\Exo2-BlackItalic.ttf'), 'Nexo', 240, 610, 175)
 
 $svgContent = @'
 <svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
-  <style>
-    @font-face {
-      font-family: "Russo One Local";
-      src: url("fonts/RussoOne-Regular.ttf") format("truetype");
-      font-weight: 400;
-    }
-  </style>
   <rect width="1920" height="1080" fill="#17382d"/>
-  <text x="265" y="625" fill="#fbfaf7" font-family="Russo One Local, sans-serif" font-size="238" font-weight="400" letter-spacing="-5">Nexo</text>
-  <image href="uabc-mark-white.png" x="927" y="357" width="770" height="376"/>
+  <path d="__NEXO_PATH__" fill="#fbfaf7"/>
+  <image href="data:image/png;base64,__MARK_DATA__" x="927" y="422" width="770" height="376"/>
 </svg>
 '@
+$svgContent = $svgContent.Replace('__NEXO_PATH__', $nexoPath).Replace('__MARK_DATA__', $markData)
 [System.IO.File]::WriteAllText($svg, $svgContent, [System.Text.UTF8Encoding]::new($false))
 
 $chrome = 'C:\Program Files\Google\Chrome\Application\chrome.exe'
