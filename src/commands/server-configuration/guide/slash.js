@@ -22,7 +22,7 @@ function buildInfoEmbeds(guild) {
     const tagPart1 = emoji('uabc_tag_part1');
     const tagPart2 = emoji('uabc_tag_part2');
     const uabcTag = tagPart1 && tagPart2
-        ? `${tagPart1}${tagPart2}`
+        ? `${tagPart1}\u200b${tagPart2}`
         : emoji('uabc_tag') || '**UABC**';
     const rankEmoji = {
         'Leyenda Cimarrona': emoji('rank_lightning'),
