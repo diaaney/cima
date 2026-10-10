@@ -22,6 +22,7 @@ function buildInfoEmbeds(guild) {
         return found ? `<:${found.name}:${found.id}>` : '';
     };
     const rankEmoji = {
+        'Leyenda Cimarrona': emoji('rank_custom'),
         'Cimarrón Avanzado': emoji('rank_holo'),
         'Cimarrón Veterano': emoji('rank_crimson'),
         'Orgullo Cimarrón': emoji('rank_golden'),
