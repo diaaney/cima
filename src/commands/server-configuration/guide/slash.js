@@ -14,6 +14,8 @@ const RANK_COLORS = {
 };
 
 function buildInfoEmbeds(guild) {
+    const tagBadge = guild.emojis?.cache.find(item => item.name === 'uabc_tag');
+    const tagImageUrl = tagBadge ? `https://cdn.discordapp.com/emojis/${tagBadge.id}.png?size=128` : null;
     const emoji = name => {
         const found = guild.emojis?.cache.find(item => item.name === name);
         return found ? `<:${found.name}:${found.id}>` : '';
@@ -35,13 +37,14 @@ function buildInfoEmbeds(guild) {
         .setTitle('Bienvenido a Nexo UABC')
         .setDescription(
             `Esta es la comunidad de Discord para convivir entre cimarrones. Empieza por <#${RULES_CHANNEL_ID}> y respeta las [normas de Discord](https://discord.com/guidelines).\n\n` +
-            `**XP extra** · Con el tag ${emoji('uabc_tag') || 'UABC'} visible ganas **x${UABC_TAG_XP_MULTIPLIER} XP**; con <@&${BOOSTER_ROLE_ID}> ganas **x${BOOSTER_XP_MULTIPLIER} XP**. Ambos aplican a mensajes válidos y a cada premio de 10 números en counting. **No se acumulan:** si tienes los dos, se aplica x${BOOSTER_XP_MULTIPLIER}.\n\n` +
+            `**XP extra** · Con el tag **UABC** visible ganas **x${UABC_TAG_XP_MULTIPLIER} XP**; con <@&${BOOSTER_ROLE_ID}> ganas **x${BOOSTER_XP_MULTIPLIER} XP**. Ambos aplican a mensajes válidos y a cada premio de 10 números en counting. **No se acumulan:** si tienes los dos, se aplica x${BOOSTER_XP_MULTIPLIER}.\n\n` +
             `**Dónde ir**\n` +
             `• <#${GENERAL_CHANNEL_ID}> · plática y conoce a la comunidad.\n` +
             `• ${counting} · cuenta en orden sin repetir turno; un error reinicia la cuenta.\n` +
             `• ${generator} · entra para crear tu propio voice chat.\n` +
             `• ${panel} · personaliza ese canal de voz.${welcomeId && welcomeId !== GENERAL_CHANNEL_ID ? `\n• <#${welcomeId}> · recibe a quienes llegan.` : ''}`
         );
+    if (tagImageUrl) welcomeEmbed.setThumbnail(tagImageUrl);
 
     const commandsEmbed = new EmbedBuilder()
         .setColor(embeds.NEUTRAL_COLOR)
@@ -63,8 +66,9 @@ function buildInfoEmbeds(guild) {
         .setDescription(
             `<@&${UNVERIFIED_ROLE_ID}> limita el acceso hasta confirmar tu correo. Al verificarte recibes <@&${RANKS[0].id}>. Después, Cima cambia automáticamente tu rango al subir de nivel:\n\n` +
             [...RANKS].reverse().map(rank => `• ${rankEmoji[rank.name] ? `${rankEmoji[rank.name]} ` : ''}<@&${rank.id}>${RANK_COLORS[rank.name] ? ` (**${RANK_COLORS[rank.name]}**)` : ''} · nivel **${rank.level}**`).join('\n') +
-            `\n\nCada mensaje válido fuera de counting da **20 XP**, como máximo una vez por minuto. Cada **10 números válidos** en counting dan otros **20 XP**. El tag ${emoji('uabc_tag') || 'UABC'} da **x${UABC_TAG_XP_MULTIPLIER} XP** y <@&${BOOSTER_ROLE_ID}> da **x${BOOSTER_XP_MULTIPLIER} XP**. **No se suman:** si tienes ambos, recibes x${BOOSTER_XP_MULTIPLIER}. Usa \`/nivel\` para ver tu progreso.`
+            `\n\nCada mensaje válido fuera de counting da **20 XP**, como máximo una vez por minuto. Cada **10 números válidos** en counting dan otros **20 XP**. El tag **UABC** da **x${UABC_TAG_XP_MULTIPLIER} XP** y <@&${BOOSTER_ROLE_ID}> da **x${BOOSTER_XP_MULTIPLIER} XP**. **No se suman:** si tienes ambos, recibes x${BOOSTER_XP_MULTIPLIER}. Usa \`/nivel\` para ver tu progreso.`
         );
+    if (tagImageUrl) ranksEmbed.setThumbnail(tagImageUrl);
 
     return [welcomeEmbed, commandsEmbed, ranksEmbed];
 }
