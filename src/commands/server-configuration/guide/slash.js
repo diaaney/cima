@@ -1,5 +1,4 @@
-const path = require('node:path');
-const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits, AttachmentBuilder } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } = require('discord.js');
 const embeds = require('../../../constants/embeds');
 const { getCountingConfig, getVoicemasterConfig, getWelcomeConfig } = require('../../../utils/storage');
 const { RANKS, BOOSTER_ROLE_ID, BOOSTER_XP_MULTIPLIER, UABC_TAG_XP_MULTIPLIER } = require('../../../utils/levelSystem');
@@ -8,8 +7,6 @@ const RULES_CHANNEL_ID = '1552775123222794250';
 const GENERAL_CHANNEL_ID = '1512976564541849760';
 const UNVERIFIED_ROLE_ID = process.env.UNVERIFIED_ROLE_ID?.trim() || '1558337666729115678';
 const EARLY_SUPPORTER_ROLE_ID = '1558478077976252479';
-const TAG_IMAGE_NAME = 'uabc-tag-guide.png';
-const TAG_IMAGE_PATH = path.join(__dirname, '../../../../assets', TAG_IMAGE_NAME);
 const RANK_COLORS = {
     'Leyenda Cimarrona': 'Custom',
     'Orgullo Cimarrón': 'Golden',
@@ -22,6 +19,7 @@ function buildInfoEmbeds(guild) {
         const found = guild.emojis?.cache.find(item => item.name === name);
         return found ? `<:${found.name}:${found.id}>` : '';
     };
+    const uabcTag = emoji('uabc_tag') || '**UABC**';
     const rankEmoji = {
         'Leyenda Cimarrona': emoji('rank_lightning'),
         'Cimarrón Avanzado': emoji('rank_holo'),
@@ -40,14 +38,13 @@ function buildInfoEmbeds(guild) {
         .setTitle('Bienvenido a Nexo UABC')
         .setDescription(
             `Esta es la comunidad de Discord para convivir entre cimarrones. Empieza por <#${RULES_CHANNEL_ID}> y respeta las [normas de Discord](https://discord.com/guidelines).\n\n` +
-            `**XP extra** · Con el tag **UABC** visible ganas **x${UABC_TAG_XP_MULTIPLIER} XP**; con ${emoji('booster_gem')} <@&${BOOSTER_ROLE_ID}> ganas **x${BOOSTER_XP_MULTIPLIER} XP**. Ambos aplican a mensajes válidos y a cada premio de 10 números en counting. **No se acumulan:** si tienes los dos, se aplica x${BOOSTER_XP_MULTIPLIER}.\n\n` +
+            `**XP extra** · Con el tag ${uabcTag} visible ganas **x${UABC_TAG_XP_MULTIPLIER} XP**; con <@&${BOOSTER_ROLE_ID}> ${emoji('booster_gem')} ganas **x${BOOSTER_XP_MULTIPLIER} XP**. Ambos aplican a mensajes válidos y a cada premio de 10 números en counting. **No se acumulan:** si tienes los dos, se aplica x${BOOSTER_XP_MULTIPLIER}.\n\n` +
             `**Dónde ir**\n` +
             `• <#${GENERAL_CHANNEL_ID}> · plática y conoce a la comunidad.\n` +
             `• ${counting} · cuenta en orden sin repetir turno; un error reinicia la cuenta.\n` +
             `• ${generator} · entra para crear tu propio voice chat.\n` +
             `• ${panel} · personaliza ese canal de voz.${welcomeId && welcomeId !== GENERAL_CHANNEL_ID ? `\n• <#${welcomeId}> · recibe a quienes llegan.` : ''}`
         );
-    welcomeEmbed.setImage(`attachment://${TAG_IMAGE_NAME}`);
 
     const commandsEmbed = new EmbedBuilder()
         .setColor(embeds.NEUTRAL_COLOR)
@@ -68,13 +65,12 @@ function buildInfoEmbeds(guild) {
         .setTitle('Rangos y niveles')
         .setDescription(
             `<@&${UNVERIFIED_ROLE_ID}> limita el acceso hasta confirmar tu correo. Al verificarte recibes <@&${RANKS[0].id}>. Después, Cima cambia automáticamente tu rango al subir de nivel:\n\n` +
-            [...RANKS].reverse().map(rank => `• ${rankEmoji[rank.name] ? `${rankEmoji[rank.name]} ` : ''}<@&${rank.id}>${RANK_COLORS[rank.name] ? ` (**${RANK_COLORS[rank.name]}**)` : ''} · nivel **${rank.level}**`).join('\n') +
+            [...RANKS].reverse().map(rank => `• <@&${rank.id}>${rankEmoji[rank.name] ? ` ${rankEmoji[rank.name]}` : ''}${RANK_COLORS[rank.name] ? ` (**${RANK_COLORS[rank.name]}**)` : ''} · nivel **${rank.level}**`).join('\n') +
             `\n\n**Roles especiales**\n` +
-            `• ${emoji('booster_gem')} <@&${BOOSTER_ROLE_ID}> · x${BOOSTER_XP_MULTIPLIER} XP.\n` +
-            `• ${emoji('early_supporter')} <@&${EARLY_SUPPORTER_ROLE_ID}> · reconocimiento a quienes apoyaron al servidor desde el inicio.\n\n` +
-            `Cada mensaje válido fuera de counting da **20 XP**, como máximo una vez por minuto. Cada **10 números válidos** en counting dan otros **20 XP**. El tag **UABC** da **x${UABC_TAG_XP_MULTIPLIER} XP** y Booster da **x${BOOSTER_XP_MULTIPLIER} XP**. **No se suman:** si tienes ambos, recibes x${BOOSTER_XP_MULTIPLIER}. Usa \`/nivel\` para ver tu progreso.`
+            `• <@&${BOOSTER_ROLE_ID}> ${emoji('booster_gem')} · x${BOOSTER_XP_MULTIPLIER} XP.\n` +
+            `• <@&${EARLY_SUPPORTER_ROLE_ID}> ${emoji('early_supporter')} · reconocimiento a quienes apoyaron al servidor desde el inicio.\n\n` +
+            `Cada mensaje válido fuera de counting da **20 XP**, como máximo una vez por minuto. Cada **10 números válidos** en counting dan otros **20 XP**. El tag ${uabcTag} da **x${UABC_TAG_XP_MULTIPLIER} XP** y Booster da **x${BOOSTER_XP_MULTIPLIER} XP**. **No se suman:** si tienes ambos, recibes x${BOOSTER_XP_MULTIPLIER}. Usa \`/nivel\` para ver tu progreso.`
         );
-    ranksEmbed.setImage(`attachment://${TAG_IMAGE_NAME}`);
 
     return [welcomeEmbed, commandsEmbed, ranksEmbed];
 }
@@ -124,11 +120,7 @@ module.exports = {
         await interaction.deferReply({ ephemeral: true });
         if (type === 'info') await interaction.guild.emojis.fetch();
         const selected = type === 'verificacion' ? [buildVerificationEmbed()] : buildInfoEmbeds(interaction.guild);
-        await interaction.channel.send({
-            embeds: selected,
-            files: type === 'info' ? [new AttachmentBuilder(TAG_IMAGE_PATH, { name: TAG_IMAGE_NAME })] : [],
-            allowedMentions: { parse: [] },
-        });
+        await interaction.channel.send({ embeds: selected, allowedMentions: { parse: [] } });
         await interaction.editReply({ embeds: [embeds.success(`Guía de ${type === 'info' ? 'información' : 'verificación'} publicada en ${interaction.channel}.`)] });
     },
 
