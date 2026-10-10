@@ -16,13 +16,24 @@ function settings() {
     return {
         guildId: process.env.GUILD_ID?.trim(),
         unverifiedRoleId: process.env.UNVERIFIED_ROLE_ID?.trim(),
+        aspiranteRoleId: process.env.ASPIRANTE_ROLE_ID?.trim(),
         domain: (process.env.INSTITUTIONAL_EMAIL_DOMAIN || 'uabc.edu.mx').toLowerCase().trim(),
     };
 }
 
 function ready() {
-    const { guildId, unverifiedRoleId } = settings();
-    return Boolean(guildId && unverifiedRoleId && process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL);
+    const { guildId, unverifiedRoleId, aspiranteRoleId } = settings();
+    return Boolean(guildId && unverifiedRoleId && aspiranteRoleId && process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL);
+}
+
+async function applyVerifiedRoles(member) {
+    const { unverifiedRoleId, aspiranteRoleId } = settings();
+    if (!member.roles.cache.has(aspiranteRoleId)) {
+        await member.roles.add(aspiranteRoleId, 'Correo institucional UABC verificado por Cima');
+    }
+    if (member.roles.cache.has(unverifiedRoleId)) {
+        await member.roles.remove(unverifiedRoleId, 'Correo institucional UABC verificado por Cima');
+    }
 }
 
 function emailValid(email, domain) {
@@ -40,7 +51,7 @@ function welcomeEmbed(guildName) {
     return new EmbedBuilder()
         .setColor(embeds.NEUTRAL_COLOR)
         .setTitle(`bienvenid@ a ${guildName} ♡`)
-        .setDescription('Para acceder a Comunidad UABC, verifica tu correo institucional. Haz clic abajo, escribe tu correo y recibirás un código válido durante 10 minutos. Después de ingresarlo, Cima quitará tu rol sin verificar.')
+        .setDescription('Para acceder a Comunidad UABC, verifica tu correo institucional. Haz clic abajo, escribe tu correo y recibirás un código válido durante 10 minutos. Después de ingresarlo, Cima te dará el rol Aspirante y quitará tu rol sin verificar.')
         .setFooter({ text: 'Cima • verificación UABC' });
 }
 
@@ -87,15 +98,13 @@ async function handle(interaction) {
         await interaction.reply({ embeds: [embeds.error('Necesitas estar en Comunidad UABC para verificarte.')], ephemeral: true });
         return true;
     }
-    const { unverifiedRoleId, domain } = settings();
+    const { domain } = settings();
     if (store.read().verified[interaction.user.id]) {
-        if (member.roles.cache.has(unverifiedRoleId)) {
-            try { await member.roles.remove(unverifiedRoleId, 'Correo institucional UABC ya verificado'); }
-            catch (error) {
-                console.error('[Verification] Could not remove unverified role:', error);
-                await interaction.reply({ embeds: [embeds.error('Tu correo ya está verificado, pero no pude quitar el rol sin verificar. Avísale al equipo del servidor.')], ephemeral: true });
-                return true;
-            }
+        try { await applyVerifiedRoles(member); }
+        catch (error) {
+            console.error('[Verification] Could not apply verified roles:', error);
+            await interaction.reply({ embeds: [embeds.error('Tu correo ya está verificado, pero no pude actualizar tus roles. Usa /verificar otra vez o avisa al equipo del servidor.')], ephemeral: true });
+            return true;
         }
         await interaction.reply({ embeds: [embeds.success('Tu correo ya está verificado ♡')], ephemeral: true });
         return true;
@@ -173,10 +182,10 @@ async function handle(interaction) {
             return true;
         }
         try {
-            await member.roles.remove(unverifiedRoleId, 'Correo institucional UABC verificado por Cima');
+            await applyVerifiedRoles(member);
         } catch (error) {
-            console.error('[Verification] Could not remove unverified role:', error);
-            await interaction.editReply({ embeds: [embeds.error('Tu correo ya está verificado, pero no pude quitar el rol sin verificar. Usa /verificar otra vez o avísale al equipo del servidor.')] });
+            console.error('[Verification] Could not apply verified roles:', error);
+            await interaction.editReply({ embeds: [embeds.error('Tu correo ya está verificado, pero no pude actualizar tus roles. Usa /verificar otra vez o avisa al equipo del servidor.')] });
             return true;
         }
         await interaction.editReply({ embeds: [embeds.success('¡Correo verificado! Ya puedes acceder a Comunidad UABC ♡')] });
@@ -186,14 +195,12 @@ async function handle(interaction) {
 }
 
 module.exports = (client) => {
-    if (!ready()) console.warn('[Verification] Missing GUILD_ID, UNVERIFIED_ROLE_ID or Resend settings.');
+    if (!ready()) console.warn('[Verification] Missing GUILD_ID, UNVERIFIED_ROLE_ID, ASPIRANTE_ROLE_ID or Resend settings.');
     client.on(Events.GuildMemberAdd, async member => {
         if (member.user.bot || member.guild.id !== settings().guildId) return;
         if (store.read().verified[member.id]) {
-            if (member.roles.cache.has(settings().unverifiedRoleId)) {
-                try { await member.roles.remove(settings().unverifiedRoleId, 'Correo institucional UABC ya verificado'); }
-                catch (error) { console.error('[Verification] Could not remove unverified role:', error); }
-            }
+            try { await applyVerifiedRoles(member); }
+            catch (error) { console.error('[Verification] Could not apply verified roles:', error); }
             return;
         }
         try { await member.roles.add(settings().unverifiedRoleId, 'Pendiente de verificación UABC'); }
