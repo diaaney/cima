@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <style>
+    @font-face {
+      font-family: "Poppins Local";
+      src: url("fonts/Poppins-Medium.ttf") format("truetype");
+      font-weight: 500;
+    }
+  </style>
+  <rect width="1920" height="1080" fill="#17382d"/>
+  <text x="300" y="625" fill="#fbfaf7" font-family="Poppins Local, Poppins, sans-serif" font-size="232" font-weight="500" letter-spacing="-8">Nexo</text>
+  <image href="uabc-mark-white.png" x="927" y="357" width="770" height="376"/>
+</svg>
