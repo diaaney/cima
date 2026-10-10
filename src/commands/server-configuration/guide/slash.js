@@ -42,14 +42,10 @@ function buildInfoEmbeds(guild) {
             `• \`/nivel\` · mira tu nivel y progreso; puedes consultar a otra persona.\n` +
             `• \`/top\` · elige el top de niveles o de counting.\n\n` +
             `**En la comunidad**\n` +
-            `• \`/colors\` · escoge un color para tu perfil.\n` +
             `• \`/afk\` · avisa que estás ausente.\n` +
             `• \`/avatar\`, \`/banner\` y \`/serverinfo\` · consulta perfiles y el servidor.\n` +
             `• \`/poll\` · crea una encuesta. \`/ping\` · comprueba la respuesta del bot.\n` +
-            `• \`/reactmessage\` · configura reacciones a mensajes.\n` +
-            `• \`/loot\` · mira tus puntos e inventario de counting. \`/use\` · usa un objeto.\n\n` +
-            `**Administración**\n` +
-            `\`/guide setup\`, \`/welcome setup\`, \`/welcome test\`, \`/count setup\`, \`/voicemaster setup\`, \`/role\`, \`/membercount setup\` y \`/emoji add\`.`
+            `• \`/loot\` · mira tus puntos e inventario de counting. \`/use\` · usa un objeto.`
         );
 
     const ranksEmbed = new EmbedBuilder()

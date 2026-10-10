@@ -4,7 +4,6 @@ const {
     TextInputBuilder,
     TextInputStyle,
     ActionRowBuilder,
-    Routes,
     MessageFlags,
 } = require('discord.js');
 const fs = require('fs');
@@ -12,8 +11,6 @@ const path = require('path');
 const embeds = require('../constants/embeds');
 const {
     getRoom,
-    getPersonalColor,
-    setPersonalColor,
     getActiveBooster,
     getCountingConfig,
     applyBoostToCount,
@@ -36,127 +33,8 @@ const {
     fillTokens,
 } = require('../constants/countingLines');
 
-function parseHexColor(input) {
-    if (!input) return null;
-    let hex = input.trim().replace(/^#/, '');
-    if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
-    if (!/^[0-9a-fA-F]{6}$/.test(hex)) return null;
-    return parseInt(hex, 16);
-}
-
 function dropLabel(drop) {
     return ITEM_DEFS_BY_TYPE[drop.item_type]?.label || drop.label;
-}
-
-function isValidIconUrl(url) {
-    try {
-        const u = new URL(url);
-        return u.protocol === 'http:' || u.protocol === 'https:';
-    } catch {
-        return false;
-    }
-}
-
-function detectImageMime(buf) {
-    if (buf.length >= 4 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) return 'image/png';
-    if (buf.length >= 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return 'image/jpeg';
-    if (buf.length >= 6 && buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46) return 'image/gif';
-    if (buf.length >= 12 && buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x46 && buf[8] === 0x57 && buf[9] === 0x45 && buf[10] === 0x42 && buf[11] === 0x50) return 'image/webp';
-    return null;
-}
-
-async function fetchIconAsDataUri(url) {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`icon fetch ${res.status}`);
-    const buf = Buffer.from(await res.arrayBuffer());
-    const mime = detectImageMime(buf);
-    if (!mime) throw new Error('icon format not recognized');
-    return `data:${mime};base64,${buf.toString('base64')}`;
-}
-
-async function applyPersonalColor(interaction, { primaryColor, secondaryColor = null, customName = null, iconUrl = null }) {
-    const member = interaction.member;
-    const guild = interaction.guild;
-
-    let roleId = getPersonalColor(guild.id, member.id);
-    let role = roleId ? await guild.roles.fetch(roleId).catch(() => null) : null;
-
-    const displayName = member.displayName || member.user.username;
-    const baseName = customName || (role ? role.name : `🎨 ${displayName}`);
-
-    const editOpts = { color: primaryColor, name: baseName };
-    let iconApplied = false;
-
-    if (iconUrl) {
-        try {
-            editOpts.icon = await fetchIconAsDataUri(iconUrl);
-            iconApplied = true;
-        } catch (err) {
-            console.error('[Colors] icon fetch failed:', err.message);
-        }
-    }
-
-    async function tryWrite() {
-        if (role) {
-            await role.edit(editOpts, 'personal color update');
-        } else {
-            role = await guild.roles.create({
-                ...editOpts,
-                hoist: false,
-                mentionable: false,
-                reason: `personal color role for ${member.user.tag}`
-            });
-            setPersonalColor(guild.id, member.id, role.id);
-        }
-    }
-
-    try {
-        await tryWrite();
-    } catch (err) {
-        if (editOpts.icon) {
-            iconApplied = false;
-            delete editOpts.icon;
-            await tryWrite();
-        } else {
-            throw err;
-        }
-    }
-
-    let gradientApplied = false;
-    try {
-        await interaction.client.rest.patch(
-            Routes.guildRole(guild.id, role.id),
-            {
-                body: {
-                    colors: {
-                        primary_color: primaryColor,
-                        secondary_color: secondaryColor,
-                        tertiary_color: null
-                    }
-                },
-                reason: secondaryColor !== null ? 'personal gradient' : 'personal solid color'
-            }
-        );
-        gradientApplied = secondaryColor !== null;
-    } catch (err) {
-        if (secondaryColor !== null) {
-            const e = new Error('gradient_unsupported');
-            e.cause = err;
-            throw e;
-        }
-    }
-
-    // Position the color role just below the bot's highest role so the color shows.
-    const botTop = guild.members.me?.roles?.highest;
-    if (botTop && botTop.position > 1) {
-        await role.setPosition(botTop.position - 1).catch(() => {});
-    }
-
-    if (!member.roles.cache.has(role.id)) {
-        await member.roles.add(role).catch(() => {});
-    }
-
-    return { role, gradientApplied, iconApplied };
 }
 
 // Cargar todos los botones desde components/buttons/
@@ -305,94 +183,6 @@ module.exports = (client) => {
                     .setRequired(true);
 
                 modal.addComponents(new ActionRowBuilder().addComponents(input));
-                return interaction.showModal(modal);
-            }
-
-            // Solid color picker
-            if (interaction.customId === 'colors_pick_solid') {
-                const modal = new ModalBuilder()
-                    .setCustomId('colors_modal_solid')
-                    .setTitle('pick your color');
-
-                const hexInput = new TextInputBuilder()
-                    .setCustomId('colors_hex')
-                    .setLabel('hex code')
-                    .setPlaceholder('#ff66cc')
-                    .setStyle(TextInputStyle.Short)
-                    .setMinLength(3)
-                    .setMaxLength(7)
-                    .setRequired(true);
-
-                const nameInput = new TextInputBuilder()
-                    .setCustomId('colors_name')
-                    .setLabel('role name (optional)')
-                    .setPlaceholder('leave empty to keep current')
-                    .setStyle(TextInputStyle.Short)
-                    .setMaxLength(100)
-                    .setRequired(false);
-
-                const iconInput = new TextInputBuilder()
-                    .setCustomId('colors_icon')
-                    .setLabel('icon PNG url (optional)')
-                    .setPlaceholder('https://... — needs server boost lvl 2')
-                    .setStyle(TextInputStyle.Short)
-                    .setMaxLength(500)
-                    .setRequired(false);
-
-                modal.addComponents(
-                    new ActionRowBuilder().addComponents(hexInput),
-                    new ActionRowBuilder().addComponents(nameInput),
-                    new ActionRowBuilder().addComponents(iconInput)
-                );
-                return interaction.showModal(modal);
-            }
-
-            // Gradient picker
-            if (interaction.customId === 'colors_pick_gradient') {
-                const modal = new ModalBuilder()
-                    .setCustomId('colors_modal_gradient')
-                    .setTitle('pick your gradient');
-
-                const primaryInput = new TextInputBuilder()
-                    .setCustomId('colors_hex_primary')
-                    .setLabel('first color (hex)')
-                    .setPlaceholder('#ff66cc')
-                    .setStyle(TextInputStyle.Short)
-                    .setMinLength(3)
-                    .setMaxLength(7)
-                    .setRequired(true);
-
-                const secondaryInput = new TextInputBuilder()
-                    .setCustomId('colors_hex_secondary')
-                    .setLabel('second color (hex)')
-                    .setPlaceholder('#6666ff')
-                    .setStyle(TextInputStyle.Short)
-                    .setMinLength(3)
-                    .setMaxLength(7)
-                    .setRequired(true);
-
-                const nameInput = new TextInputBuilder()
-                    .setCustomId('colors_name')
-                    .setLabel('role name (optional)')
-                    .setPlaceholder('leave empty to keep current')
-                    .setStyle(TextInputStyle.Short)
-                    .setMaxLength(100)
-                    .setRequired(false);
-
-                const iconInput = new TextInputBuilder()
-                    .setCustomId('colors_icon')
-                    .setLabel('icon PNG url (optional)')
-                    .setPlaceholder('https://... — needs server boost lvl 2')
-                    .setStyle(TextInputStyle.Short)
-                    .setMaxLength(500)
-                    .setRequired(false);
-
-                modal.addComponents(
-                    new ActionRowBuilder().addComponents(primaryInput),
-                    new ActionRowBuilder().addComponents(secondaryInput),
-                    new ActionRowBuilder().addComponents(nameInput),
-                    new ActionRowBuilder().addComponents(iconInput)
-                );
                 return interaction.showModal(modal);
             }
 
@@ -598,80 +388,6 @@ module.exports = (client) => {
 
                     return interaction.editReply({
                         content: `Incorrecto. La respuesta era **${active.answer}**.`,
-                    });
-                }
-            }
-
-            if (interaction.customId === 'colors_modal_solid' || interaction.customId === 'colors_modal_gradient') {
-                const isGradient = interaction.customId === 'colors_modal_gradient';
-
-                const primary = parseHexColor(
-                    interaction.fields.getTextInputValue(isGradient ? 'colors_hex_primary' : 'colors_hex')
-                );
-                const secondary = isGradient
-                    ? parseHexColor(interaction.fields.getTextInputValue('colors_hex_secondary'))
-                    : null;
-
-                if (primary === null || (isGradient && secondary === null)) {
-                    return interaction.reply({
-                        embeds: [embeds.error('one of those hex codes is invalid. use a format like `#ff66cc` or `f6c`.')],
-                        ephemeral: true
-                    });
-                }
-
-                const customName = (interaction.fields.getTextInputValue('colors_name') || '').trim() || null;
-                const iconRaw = (interaction.fields.getTextInputValue('colors_icon') || '').trim();
-                const iconUrl = iconRaw || null;
-
-                if (iconUrl && !isValidIconUrl(iconUrl)) {
-                    return interaction.reply({
-                        embeds: [embeds.error('that icon URL doesn\'t look right. needs to be a direct http(s) link to a png/jpg.')],
-                        ephemeral: true
-                    });
-                }
-
-                await interaction.deferReply({ ephemeral: true });
-
-                try {
-                    const { gradientApplied, iconApplied } = await applyPersonalColor(interaction, {
-                        primaryColor: primary,
-                        secondaryColor: secondary,
-                        customName,
-                        iconUrl
-                    });
-
-                    const hexA = primary.toString(16).padStart(6, '0');
-                    const hexB = secondary !== null ? secondary.toString(16).padStart(6, '0') : null;
-
-                    const notes = [];
-                    if (isGradient && !gradientApplied) {
-                        notes.push('gradient needs **Server Boost lvl 2** — fell back to solid for now');
-                    }
-                    if (iconUrl && !iconApplied) {
-                        notes.push('couldn\'t set the icon — likely needs **Server Boost lvl 2** or the URL didn\'t load');
-                    }
-
-                    const headline = isGradient
-                        ? `gradient set: **#${hexA}** → **#${hexB}**`
-                        : `your color is now **#${hexA}**`;
-
-                    const body = notes.length
-                        ? `${headline}.\n\n${notes.map(n => `• ${n}`).join('\n')}`
-                        : `${headline}. looking fresh ${interaction.member}`;
-
-                    return interaction.editReply({
-                        embeds: [(notes.length ? embeds.error : embeds.success)(body)]
-                    });
-                } catch (err) {
-                    if (err?.message === 'gradient_unsupported') {
-                        console.error('[Colors] gradient unsupported:', err.cause?.message || err.cause);
-                        return interaction.editReply({
-                            embeds: [embeds.error('this server can\'t use gradient roles yet — needs **Server Boost lvl 2**.')]
-                        });
-                    }
-                    console.error('[Colors] failed to apply personal color:', err);
-                    return interaction.editReply({
-                        embeds: [embeds.error('couldn\'t set that. make sure i have **Manage Roles** and my role is high enough in the list.')]
                     });
                 }
             }

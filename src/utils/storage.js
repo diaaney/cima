@@ -29,7 +29,6 @@ function defaultGuildConfig() {
         welcome: { channel_id: null, featured_channels: [], image_url: null },
         autorole: { role_id: null },
         membercount: { category_id: null },
-        personal_colors: {},
     };
 }
 
@@ -87,7 +86,6 @@ function migrateLegacy(legacy) {
         if (legacy.counting) g.counting = { ...g.counting, ...legacy.counting };
         if (legacy.welcome) g.welcome = { ...g.welcome, ...legacy.welcome };
         if (legacy.autorole) g.autorole = { ...g.autorole, ...legacy.autorole };
-        if (legacy.personal_colors) g.personal_colors = legacy.personal_colors;
         // Preserve the previously hardcoded member-count category for the home guild
         g.membercount = { category_id: HOME_MEMBERCOUNT_CATEGORY_ID };
         migrated.guilds[gid] = g;
@@ -538,23 +536,6 @@ function isAfk(user_id) {
 }
 
 // ---------------------------------------------------------------------------
-// Personal Color Roles (per-guild)
-// ---------------------------------------------------------------------------
-function getPersonalColor(guildId, user_id) {
-    const config = readConfig();
-    const { guild, changed } = ensureGuild(config, guildId);
-    if (changed) writeConfig(config);
-    return guild.personal_colors[user_id] || null;
-}
-
-function setPersonalColor(guildId, user_id, role_id) {
-    const config = readConfig();
-    const { guild } = ensureGuild(config, guildId);
-    guild.personal_colors[user_id] = role_id;
-    writeConfig(config);
-}
-
-// ---------------------------------------------------------------------------
 // Autorole Functions (per-guild)
 // ---------------------------------------------------------------------------
 function getAutoroleConfig(guildId) {
@@ -695,8 +676,6 @@ module.exports = {
     decrementReactMessage,
     getAutoroleConfig,
     setAutoroleConfig,
-    getPersonalColor,
-    setPersonalColor,
     // exposed for tests
     _isLegacyShape: isLegacyShape,
     _migrateLegacy: migrateLegacy,
