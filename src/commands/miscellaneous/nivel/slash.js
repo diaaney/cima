@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, MessageFlags } = require('discord.js');
+const { SlashCommandBuilder } = require('discord.js');
 const embeds = require('../../../constants/embeds');
 const {
     getProfile,
@@ -16,7 +16,7 @@ module.exports = {
             .setDescription('Miembro cuyo nivel quieres ver')),
 
     async execute(interaction) {
-        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        await interaction.deferReply();
         if (interaction.guildId !== process.env.GUILD_ID?.trim()) {
             return interaction.editReply({ embeds: [embeds.error('Este comando solo funciona en Nexo UABC.')] });
         }
