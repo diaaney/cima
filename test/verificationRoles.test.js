@@ -7,6 +7,7 @@ const { Events } = require('discord.js');
 
 const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'cima-verification-roles-'));
 process.env.VERIFICATION_STORE_FILE = path.join(directory, 'verification.json');
+process.env.LEVEL_STORE_FILE = path.join(directory, 'levels.json');
 process.env.GUILD_ID = 'guild-uabc';
 process.env.UNVERIFIED_ROLE_ID = 'unverified';
 process.env.ASPIRANTE_ROLE_ID = 'aspirante';
@@ -14,6 +15,7 @@ process.env.RESEND_API_KEY = 'test-key';
 process.env.RESEND_FROM_EMAIL = 'Cima <test@example.com>';
 
 const store = require('../src/utils/verificationStore');
+const levels = require('../src/utils/levelSystem');
 const registerVerification = require('../src/events/verification');
 
 function setup(member) {
@@ -85,6 +87,21 @@ test('a returning verified member receives aspirante and loses unverified', asyn
 
     assert.deepEqual(member.calls, ['add:aspirante', 'remove:unverified']);
     assert.deepEqual([...member.roleIds], ['aspirante']);
+});
+
+test('a returning verified member regains their earned rank instead of aspirante', async () => {
+    const veteran = levels.RANKS.find(rank => rank.level === 40);
+    const original = makeMember('veteran', [veteran.id]);
+    levels.awardMessage('guild-uabc', 'veteran', original, 100_000);
+    assert.equal(store.begin('veteran', 'veteran@uabc.edu.mx', '123456'), null);
+    store.complete('veteran');
+
+    const returning = makeMember('veteran', ['unverified']);
+    const { handlers } = setup(returning);
+    await handlers[Events.GuildMemberAdd](returning);
+
+    assert.deepEqual(returning.calls, [`add:${veteran.id}`, 'remove:unverified']);
+    assert.deepEqual([...returning.roleIds], [veteran.id]);
 });
 
 test('a verified member can retry role assignment without receiving aspirante twice', async () => {

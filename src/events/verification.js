@@ -6,6 +6,7 @@ const {
 } = require('discord.js');
 const embeds = require('../constants/embeds');
 const store = require('../utils/verificationStore');
+const { getProfile, synchronizeRank } = require('../utils/levelSystem');
 
 const EMAIL_BUTTON = 'cima_verify_email';
 const CODE_BUTTON = 'cima_verify_code';
@@ -27,10 +28,9 @@ function ready() {
 }
 
 async function applyVerifiedRoles(member) {
-    const { unverifiedRoleId, aspiranteRoleId } = settings();
-    if (!member.roles.cache.has(aspiranteRoleId)) {
-        await member.roles.add(aspiranteRoleId, 'Correo institucional UABC verificado por Cima');
-    }
+    const { unverifiedRoleId } = settings();
+    const level = getProfile(member.guild.id, member.id, member).level;
+    await synchronizeRank(member, level);
     if (member.roles.cache.has(unverifiedRoleId)) {
         await member.roles.remove(unverifiedRoleId, 'Correo institucional UABC verificado por Cima');
     }
