@@ -14,8 +14,12 @@ module.exports = {
         try {
             await sendPrompt(interaction.user, interaction.guild.name);
             return interaction.editReply({ embeds: [embeds.success('Te envié las instrucciones por MD ♡')] });
-        } catch {
-            return interaction.editReply({ embeds: [embeds.error('No pude enviarte un MD. Activa los mensajes directos del servidor e inténtalo de nuevo.')] });
+        } catch (error) {
+            console.warn(`[Verification] Could not DM ${interaction.user.id}: ${error.code || 'unknown'} ${error.message}`);
+            const message = error.code === 50007
+                ? 'Discord bloqueó mi MD. En tu cuenta, permite los mensajes directos de miembros de este servidor y comprueba que no hayas bloqueado a Cima.'
+                : 'No pude enviarte el MD por un error. Inténtalo de nuevo en un momento.';
+            return interaction.editReply({ embeds: [embeds.error(message)] });
         }
     },
 };
