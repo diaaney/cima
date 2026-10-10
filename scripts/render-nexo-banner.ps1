@@ -138,28 +138,30 @@ public static class BannerTaglineOutliner {
 if (-not ('BannerTaglineOutliner' -as [type])) {
     Add-Type -TypeDefinition $textOutliner -ReferencedAssemblies System.Drawing
 }
-$taglineFont = Join-Path $assets 'fonts\Poppins-Medium.ttf'
+$taglineFont = Join-Path $assets 'fonts\Poppins-SemiBold.ttf'
 $tagline = 'Comunidad de'
-$taglineHeight = 82
+$taglineHeight = 86
 $taglineWidth = [BannerTaglineOutliner]::Width($taglineFont, $tagline, $taglineHeight)
-$symbolWidth = 122
-$symbolHeight = 91.5
-$gap = 32
+$symbolWidth = 150
+$symbolHeight = 112.5
+$gap = 36
 $taglineX = (1920 - $taglineWidth - $gap - $symbolWidth) / 2
 $symbolX = $taglineX + $taglineWidth + $gap
 $taglinePath = [BannerTaglineOutliner]::Make($taglineFont, $tagline, $taglineX, 850, $taglineHeight)
 $symbolData = [Convert]::ToBase64String([System.IO.File]::ReadAllBytes($discordSymbol))
 $symbolXText = $symbolX.ToString('0.###', [System.Globalization.CultureInfo]::InvariantCulture)
+$symbolWidthText = $symbolWidth.ToString('0.###', [System.Globalization.CultureInfo]::InvariantCulture)
+$symbolHeightText = $symbolHeight.ToString('0.###', [System.Globalization.CultureInfo]::InvariantCulture)
 
 $svgContent = @'
 <svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
   <rect width="1920" height="1080" fill="#17382d"/>
-  <image href="data:image/png;base64,__MARK_DATA__" x="410" y="180" width="1100" height="544"/>
+  <image href="data:image/png;base64,__MARK_DATA__" x="510" y="230" width="900" height="445"/>
   <path d="__TAGLINE_PATH__" fill="#fbfaf7"/>
-  <image href="data:image/svg+xml;base64,__SYMBOL_DATA__" x="__SYMBOL_X__" y="804" width="122" height="91.5"/>
+  <image href="data:image/svg+xml;base64,__SYMBOL_DATA__" x="__SYMBOL_X__" y="794" width="__SYMBOL_WIDTH__" height="__SYMBOL_HEIGHT__"/>
 </svg>
 '@
-$svgContent = $svgContent.Replace('__TAGLINE_PATH__', $taglinePath).Replace('__MARK_DATA__', $markData).Replace('__SYMBOL_DATA__', $symbolData).Replace('__SYMBOL_X__', $symbolXText)
+$svgContent = $svgContent.Replace('__TAGLINE_PATH__', $taglinePath).Replace('__MARK_DATA__', $markData).Replace('__SYMBOL_DATA__', $symbolData).Replace('__SYMBOL_X__', $symbolXText).Replace('__SYMBOL_WIDTH__', $symbolWidthText).Replace('__SYMBOL_HEIGHT__', $symbolHeightText)
 [System.IO.File]::WriteAllText($svg, $svgContent, [System.Text.UTF8Encoding]::new($false))
 
 $chrome = 'C:\Program Files\Google\Chrome\Application\chrome.exe'
