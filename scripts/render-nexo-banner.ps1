@@ -8,10 +8,12 @@ Add-Type -AssemblyName System.Drawing
 $assets = Join-Path $ProjectRoot 'assets'
 $source = Join-Path $assets 'nexo-uabc-banner-verde.png'
 $mark = Join-Path $assets 'uabc-mark-white.png'
-$svg = Join-Path $assets 'nexo-uabc-banner-exo.svg'
-$png = Join-Path $assets 'nexo-uabc-banner-exo.png'
+$discordSymbol = Join-Path $assets 'discord-symbol-white.svg'
+$svg = Join-Path $assets 'uabc-comunidad-discord-banner.svg'
+$png = Join-Path $assets 'uabc-comunidad-discord-banner.png'
 
 if (-not (Test-Path -LiteralPath $source)) { throw "Missing source isotipo: $source" }
+if (-not (Test-Path -LiteralPath $discordSymbol)) { throw "Missing Discord symbol: $discordSymbol" }
 
 $extractor = @'
 using System;
@@ -81,8 +83,20 @@ using System.Drawing.Text;
 using System.Globalization;
 using System.Text;
 
-public static class SvgTextOutliner {
+public static class BannerTaglineOutliner {
     private static string Coord(float value) { return value.ToString("0.###", CultureInfo.InvariantCulture); }
+
+    public static float Width(string fontPath, string value, float height) {
+        using (var fonts = new PrivateFontCollection()) {
+            fonts.AddFontFile(fontPath);
+            using (var path = new GraphicsPath()) {
+                path.AddString(value, fonts.Families[0], (int)FontStyle.Regular, 300f,
+                    new PointF(0, 0), StringFormat.GenericTypographic);
+                var bounds = path.GetBounds();
+                return bounds.Width * height / bounds.Height;
+            }
+        }
+    }
 
     public static string Make(string fontPath, string value, float x, float centerY, float height) {
         using (var fonts = new PrivateFontCollection()) {
@@ -121,19 +135,31 @@ public static class SvgTextOutliner {
     }
 }
 '@
-if (-not ('SvgTextOutliner' -as [type])) {
+if (-not ('BannerTaglineOutliner' -as [type])) {
     Add-Type -TypeDefinition $textOutliner -ReferencedAssemblies System.Drawing
 }
-$nexoPath = [SvgTextOutliner]::Make((Join-Path $assets 'fonts\Exo2-BlackItalic.ttf'), 'Nexo', 240, 610, 175)
+$taglineFont = Join-Path $assets 'fonts\Poppins-Medium.ttf'
+$tagline = 'Comunidad de'
+$taglineHeight = 82
+$taglineWidth = [BannerTaglineOutliner]::Width($taglineFont, $tagline, $taglineHeight)
+$symbolWidth = 122
+$symbolHeight = 91.5
+$gap = 32
+$taglineX = (1920 - $taglineWidth - $gap - $symbolWidth) / 2
+$symbolX = $taglineX + $taglineWidth + $gap
+$taglinePath = [BannerTaglineOutliner]::Make($taglineFont, $tagline, $taglineX, 850, $taglineHeight)
+$symbolData = [Convert]::ToBase64String([System.IO.File]::ReadAllBytes($discordSymbol))
+$symbolXText = $symbolX.ToString('0.###', [System.Globalization.CultureInfo]::InvariantCulture)
 
 $svgContent = @'
 <svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
   <rect width="1920" height="1080" fill="#17382d"/>
-  <path d="__NEXO_PATH__" fill="#fbfaf7"/>
-  <image href="data:image/png;base64,__MARK_DATA__" x="927" y="422" width="770" height="376"/>
+  <image href="data:image/png;base64,__MARK_DATA__" x="410" y="180" width="1100" height="544"/>
+  <path d="__TAGLINE_PATH__" fill="#fbfaf7"/>
+  <image href="data:image/svg+xml;base64,__SYMBOL_DATA__" x="__SYMBOL_X__" y="804" width="122" height="91.5"/>
 </svg>
 '@
-$svgContent = $svgContent.Replace('__NEXO_PATH__', $nexoPath).Replace('__MARK_DATA__', $markData)
+$svgContent = $svgContent.Replace('__TAGLINE_PATH__', $taglinePath).Replace('__MARK_DATA__', $markData).Replace('__SYMBOL_DATA__', $symbolData).Replace('__SYMBOL_X__', $symbolXText)
 [System.IO.File]::WriteAllText($svg, $svgContent, [System.Text.UTF8Encoding]::new($false))
 
 $chrome = 'C:\Program Files\Google\Chrome\Application\chrome.exe'
