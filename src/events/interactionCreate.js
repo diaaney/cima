@@ -178,15 +178,16 @@ module.exports = (client) => {
             try {
                 await command.execute(interaction);
             } catch (err) {
-                console.error(err);
+                console.error('[Commands] Error al ejecutar el comando:', err?.message || err);
+                if (err?.code === 10062) return;
                 const errorReply = {
                     embeds: [embeds.error('Error executing command.')],
                     ephemeral: true
                 };
                 if (interaction.deferred || interaction.replied) {
-                    await interaction.followUp(errorReply).catch(error => console.error('[Commands] Could not report error:', error));
+                    await interaction.followUp(errorReply).catch(error => console.error('[Commands] No pude informar el error:', error?.message || error));
                 } else {
-                    await interaction.reply(errorReply).catch(error => console.error('[Commands] Could not report error:', error));
+                    await interaction.reply(errorReply).catch(error => console.error('[Commands] No pude informar el error:', error?.message || error));
                 }
             }
             return;

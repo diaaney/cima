@@ -6,6 +6,7 @@ const {
     ActionRowBuilder,
     ButtonBuilder,
     ButtonStyle,
+    MessageFlags,
 } = require('discord.js');
 const path = require('path');
 const { setVoicemasterConfig } = require('../../../../utils/storage');
@@ -25,13 +26,13 @@ module.exports = {
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
     async execute(interaction) {
-        const { guild } = interaction;
+        const arrivalDelay = Date.now() - interaction.createdTimestamp;
+        if (arrivalDelay > 1000) {
+            console.warn(`[VoiceMaster] La interacción llegó con ${arrivalDelay} ms de retraso.`);
+        }
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-        // Show thinking state with random verb
-        await interaction.reply({
-            embeds: [embeds.thinking()],
-            ephemeral: true
-        });
+        const { guild } = interaction;
 
         // Crear categoría
         const category = await guild.channels.create({
@@ -99,7 +100,7 @@ module.exports = {
 
         // Update to success state
         await interaction.editReply({
-            embeds: [embeds.success('VoiceMaster setup completed!')]
+            embeds: [embeds.success('¡VoiceMaster configurado!')]
         });
     }
 };
