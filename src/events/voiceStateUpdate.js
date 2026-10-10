@@ -1,4 +1,32 @@
+const { ChannelType } = require('discord.js');
 const { getVoicemasterConfig, createRoom, deleteRoom } = require('../utils/storage');
+
+const creatingRooms = new Set();
+
+function watchRoom(channel, guild) {
+    const createdAt = Date.now();
+    let deleting = false;
+    const interval = setInterval(async () => {
+        if (deleting || Date.now() - createdAt < 15000) return;
+        if (guild.voiceStates.cache.some(state => state.channelId === channel.id)) return;
+
+        deleting = true;
+        try {
+            await channel.delete();
+            deleteRoom(channel.id);
+            clearInterval(interval);
+        } catch (error) {
+            if (error?.code === 10003) {
+                deleteRoom(channel.id);
+                clearInterval(interval);
+                return;
+            }
+            console.error('[VoiceMaster] No pude eliminar la sala vacía:', error?.message || error);
+        } finally {
+            deleting = false;
+        }
+    }, 2000);
+}
 
 module.exports = (client) => {
     client.on('voiceStateUpdate', async (oldState, newState) => {
@@ -14,13 +42,16 @@ module.exports = (client) => {
 
         const generatorId = guildConfig.generator_id;
 
-        if (joinedChannel.id === generatorId) {
-            const category = joinedChannel.parent;
+        if (newState.channelId === generatorId) {
+            const requestKey = `${guild.id}:${user.id}`;
+            if (creatingRooms.has(requestKey)) return;
+            creatingRooms.add(requestKey);
+            const category = joinedChannel?.parent ?? null;
 
             try {
                 const newChannel = await guild.channels.create({
                     name: `${user.displayName}'s room`,
-                    type: 2, // GuildVoice
+                    type: ChannelType.GuildVoice,
                     parent: category ?? null,
                     permissionOverwrites: [
                         {
@@ -34,21 +65,15 @@ module.exports = (client) => {
                     ],
                 });
 
-                await user.voice.setChannel(newChannel);
-
-                // Save to JSON
                 createRoom(newChannel.id, user.id);
+                watchRoom(newChannel, guild);
 
-                // Auto-delete when empty
-                const interval = setInterval(() => {
-                    if (!newChannel.members.size) {
-                        newChannel.delete().catch(() => {});
-                        deleteRoom(newChannel.id);
-                        clearInterval(interval);
-                    }
-                }, 1000);
+                if (guild.voiceStates.cache.get(user.id)?.channelId !== generatorId) return;
+                await user.voice.setChannel(newChannel);
             } catch (err) {
-                console.error('[VoiceMaster Error]', err);
+                console.error('[VoiceMaster] No pude crear o mover al usuario:', err?.message || err);
+            } finally {
+                creatingRooms.delete(requestKey);
             }
         }
     });
