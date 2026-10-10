@@ -2,7 +2,9 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const FILE = process.env.VERIFICATION_STORE_FILE || path.join(__dirname, '../../data/verification.json');
+const guildId = process.env.GUILD_ID?.trim();
+const filename = guildId ? `verification-${guildId}.json` : 'verification.json';
+const FILE = process.env.VERIFICATION_STORE_FILE || path.join(__dirname, '../../data', filename);
 const EXPIRES_MS = 10 * 60 * 1000;
 const RESEND_MS = 60 * 1000;
 const MAX_ATTEMPTS = 5;

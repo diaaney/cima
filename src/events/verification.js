@@ -16,13 +16,15 @@ function settings() {
     return {
         guildId: process.env.GUILD_ID?.trim(),
         roleId: process.env.VERIFIED_ROLE_ID?.trim(),
+        unverifiedRoleId: process.env.UNVERIFIED_ROLE_ID?.trim(),
         domain: (process.env.INSTITUTIONAL_EMAIL_DOMAIN || 'uabc.edu.mx').toLowerCase().trim(),
     };
 }
 
 function ready() {
-    const { guildId, roleId } = settings();
-    return Boolean(guildId && roleId && process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL);
+    const { guildId, roleId, unverifiedRoleId } = settings();
+    return Boolean(guildId && roleId && unverifiedRoleId && roleId !== unverifiedRoleId
+        && process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL);
 }
 
 function emailValid(email, domain) {
@@ -87,8 +89,16 @@ async function handle(interaction) {
         await interaction.reply({ embeds: [embeds.error('Necesitas estar en Comunidad UABC para verificarte.')], ephemeral: true });
         return true;
     }
-    const { roleId, domain } = settings();
-    if (member.roles.cache.has(roleId)) {
+    const { roleId, unverifiedRoleId, domain } = settings();
+    if (member.roles.cache.has(roleId) && !store.read().pending[interaction.user.id]) {
+        if (member.roles.cache.has(unverifiedRoleId)) {
+            try { await member.roles.remove(unverifiedRoleId, 'Retirar rol sin verificar de miembro verificado'); }
+            catch (error) {
+                console.error('[Verification] Could not remove unverified role:', error);
+                await interaction.reply({ embeds: [embeds.error('Ya tienes el rol verificado, pero no pude quitar el rol sin verificar. Avísale al equipo del servidor.')], ephemeral: true });
+                return true;
+            }
+        }
         await interaction.reply({ embeds: [embeds.success('Ya tienes el rol verificado ♡')], ephemeral: true });
         return true;
     }
@@ -160,25 +170,38 @@ async function handle(interaction) {
         try {
             await member.roles.add(roleId, 'Correo institucional UABC verificado por Cima');
             store.complete(interaction.user.id);
-            await interaction.editReply({ embeds: [embeds.success('¡Correo verificado! Ya tienes el rol verificado en Comunidad UABC ♡')] });
         } catch (error) {
-            console.error('[Verification] role assignment failed:', error);
-            await interaction.editReply({ embeds: [embeds.error('El código es correcto, pero no pude asignar el rol. Avísale al equipo del servidor y vuelve a intentarlo.')] });
+            console.error('[Verification] Could not assign or save verified role:', error);
+            await interaction.editReply({ embeds: [embeds.error('El código es correcto, pero no pude completar la verificación. Avísale al equipo del servidor y vuelve a intentarlo.')] });
+            return true;
         }
+        try {
+            await member.roles.remove(unverifiedRoleId, 'Correo institucional UABC verificado por Cima');
+        } catch (error) {
+            console.error('[Verification] Could not remove unverified role:', error);
+            await interaction.editReply({ embeds: [embeds.error('Tu correo ya está verificado, pero no pude quitar el rol sin verificar. Usa /verificar otra vez o avísale al equipo del servidor.')] });
+            return true;
+        }
+        await interaction.editReply({ embeds: [embeds.success('¡Correo verificado! Ya tienes el rol verificado en Comunidad UABC ♡')] });
         return true;
     }
     return true;
 }
 
 module.exports = (client) => {
-    if (!ready()) console.warn('[Verification] Missing GUILD_ID, VERIFIED_ROLE_ID or Resend settings.');
+    if (!ready()) console.warn('[Verification] Missing GUILD_ID, VERIFIED_ROLE_ID, UNVERIFIED_ROLE_ID or Resend settings.');
     client.on(Events.GuildMemberAdd, async member => {
         if (member.user.bot || member.guild.id !== settings().guildId) return;
         if (store.read().verified[member.id]) {
-            try { await member.roles.add(settings().roleId, 'Restaurar verificación UABC'); }
+            try {
+                await member.roles.add(settings().roleId, 'Restaurar verificación UABC');
+                await member.roles.remove(settings().unverifiedRoleId, 'Restaurar verificación UABC');
+            }
             catch (error) { console.error('[Verification] Could not restore role:', error); }
             return;
         }
+        try { await member.roles.add(settings().unverifiedRoleId, 'Pendiente de verificación UABC'); }
+        catch (error) { console.error('[Verification] Could not assign unverified role:', error); }
         try { await sendPrompt(member.user, member.guild.name); }
         catch (error) { console.warn(`[Verification] Could not DM ${member.id}: ${error.message}`); }
     });
