@@ -24,7 +24,7 @@ function memberWithRoles(ids) {
 }
 
 test('level thresholds match the requested rank ladder', () => {
-    assert.deepEqual(levels.RANKS.map(rank => rank.level), [0, 5, 10, 20, 30, 40, 50, 60]);
+    assert.deepEqual(levels.RANKS.map(rank => rank.level), [0, 2, 5, 8, 14, 20, 26, 32]);
     for (const rank of levels.RANKS) {
         assert.equal(levels.rankForLevel(levels.levelFromXp(levels.xpForLevel(rank.level))).id, rank.id);
     }
@@ -37,10 +37,10 @@ test('messages earn XP once per minute and retain an existing rank as the starti
     const blocked = levels.awardMessage('guild', 'student', member, 130_000);
     const second = levels.awardMessage('guild', 'student', member, 160_000);
 
-    assert.equal(first.profile.level, 10);
-    assert.equal(first.profile.xp, levels.xpForLevel(10) + 20);
+    assert.equal(first.profile.level, 5);
+    assert.equal(first.profile.xp, levels.xpForLevel(5) + 20);
     assert.equal(blocked.awarded, false);
-    assert.equal(second.profile.xp, levels.xpForLevel(10) + 40);
+    assert.equal(second.profile.xp, levels.xpForLevel(5) + 40);
 });
 
 test('ten accepted counting numbers grant one message worth of XP independently of chat cooldown', () => {
@@ -71,7 +71,7 @@ test('rank synchronization keeps Booster and unrelated roles', async () => {
     const booster = 'booster';
     const unrelated = 'unrelated';
     const member = memberWithRoles([levels.RANKS[4].id, booster, unrelated]);
-    const result = await levels.synchronizeRank(member, 40);
+    const result = await levels.synchronizeRank(member, 20);
 
     assert.deepEqual(member.calls, [
         `add:${levels.RANKS[5].id}`,

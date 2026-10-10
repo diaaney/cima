@@ -90,7 +90,7 @@ test('a returning verified member receives aspirante and loses unverified', asyn
 });
 
 test('a returning verified member regains their earned rank instead of aspirante', async () => {
-    const veteran = levels.RANKS.find(rank => rank.level === 40);
+    const veteran = levels.RANKS.find(rank => rank.level === 20);
     const original = makeMember('veteran', [veteran.id]);
     levels.awardMessage('guild-uabc', 'veteran', original, 100_000);
     assert.equal(store.begin('veteran', 'veteran@uabc.edu.mx', '123456'), null);
