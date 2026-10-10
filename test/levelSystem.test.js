@@ -81,6 +81,37 @@ test('boosters earn triple XP from chat and each ten accepted counting numbers',
     assert.equal(levels.xpForMember(member), 60);
 });
 
+test('the visible UABC server tag earns double XP in chat and counting', () => {
+    const member = memberWithRoles([levels.RANKS[0].id]);
+    member.user = { primaryGuild: {
+        identityEnabled: true,
+        identityGuildId: '1512970933399195658',
+        tag: 'UABC',
+    } };
+    assert.equal(levels.xpForMember(member), 40);
+    levels.awardMessage('guild', 'tagged-student', member, 100_000);
+    for (let number = 1; number <= 10; number++) {
+        levels.awardCountingNumber('guild', 'tagged-student', member);
+    }
+    assert.equal(levels.getProfile('guild', 'tagged-student').xp, 80);
+});
+
+test('booster and tag bonuses do not stack, and a hidden or foreign tag earns no bonus', () => {
+    const member = memberWithRoles([levels.RANKS[0].id]);
+    member.user = { primaryGuild: {
+        identityEnabled: false,
+        identityGuildId: '1512970933399195658',
+        tag: 'UABC',
+    } };
+    assert.equal(levels.xpForMember(member), 20);
+    member.user.primaryGuild.identityEnabled = true;
+    member.user.primaryGuild.identityGuildId = 'other-server';
+    assert.equal(levels.xpForMember(member), 20);
+    member.user.primaryGuild.identityGuildId = '1512970933399195658';
+    member.roleIds.add(levels.BOOSTER_ROLE_ID);
+    assert.equal(levels.xpForMember(member), 60);
+});
+
 test('rank synchronization keeps Booster and unrelated roles', async () => {
     const booster = 'booster';
     const unrelated = 'unrelated';

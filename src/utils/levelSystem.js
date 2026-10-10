@@ -15,10 +15,22 @@ const RANKS = Object.freeze([
 const XP_PER_MESSAGE = 20;
 const BOOSTER_ROLE_ID = process.env.BOOSTER_ROLE_ID?.trim() || '1517433768045183132';
 const BOOSTER_XP_MULTIPLIER = 3;
+const UABC_GUILD_ID = '1512970933399195658';
+const UABC_TAG_XP_MULTIPLIER = 2;
 const COOLDOWN_MS = 60_000;
 
+function hasUabcTag(member) {
+    const primaryGuild = member?.user?.primaryGuild;
+    return primaryGuild?.identityEnabled === true
+        && primaryGuild.identityGuildId === UABC_GUILD_ID
+        && primaryGuild.tag?.toUpperCase() === 'UABC';
+}
+
 function xpForMember(member) {
-    return XP_PER_MESSAGE * (member?.roles.cache.has(BOOSTER_ROLE_ID) ? BOOSTER_XP_MULTIPLIER : 1);
+    const multiplier = member?.roles.cache.has(BOOSTER_ROLE_ID)
+        ? BOOSTER_XP_MULTIPLIER
+        : hasUabcTag(member) ? UABC_TAG_XP_MULTIPLIER : 1;
+    return XP_PER_MESSAGE * multiplier;
 }
 
 function xpForLevel(level) {
@@ -139,6 +151,8 @@ module.exports = {
     XP_PER_MESSAGE,
     BOOSTER_ROLE_ID,
     BOOSTER_XP_MULTIPLIER,
+    UABC_TAG_XP_MULTIPLIER,
+    hasUabcTag,
     xpForMember,
     COOLDOWN_MS,
     xpForLevel,
