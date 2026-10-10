@@ -33,6 +33,22 @@ const {
 const BOOSTER_CHANCE = 0.08;
 const DROP_CHANCE = 0.04;
 
+async function reactToCount(message, emoji, fallback) {
+    try {
+        await message.react(emoji);
+    } catch (error) {
+        console.error(`[Counting] No pude reaccionar al mensaje ${message.id}:`, error?.message || error);
+        if (fallback) {
+            await message.reply({
+                content: fallback,
+                allowedMentions: { repliedUser: false },
+            }).catch(replyError => {
+                console.error('[Counting] No pude enviar la confirmación:', replyError?.message || replyError);
+            });
+        }
+    }
+}
+
 async function spawnBooster(message, userNumber, guildId) {
     const booster = generateBooster(userNumber);
     const row = new ActionRowBuilder().addComponents(
@@ -188,8 +204,8 @@ module.exports = (client) => {
                 );
                 if (saved) return;
 
-                await message.react('❌').catch(() => {});
                 resetCount(guildId);
+                await reactToCount(message, '❌');
 
                 const half = Math.max(1, Math.floor(expectedNumber / 2));
                 const otherHalf = expectedNumber - half;
@@ -207,12 +223,13 @@ module.exports = (client) => {
             }
 
             if (userNumber === expectedNumber) {
-                await message.react('✅').catch(() => {});
                 if (isSabotaged) clearSabotaged(message.author.id);
-                if (isMathSubmission) await message.react('🧮').catch(() => {});
                 updateCount(guildId, userNumber, message.author.id);
                 addToTotalCount(message.author.id, userNumber);
                 armShield(message.author.id, userNumber);
+
+                await reactToCount(message, '✅', `✅ **${userNumber}** contado. Sigue el **${userNumber + 1}**.`);
+                if (isMathSubmission) await reactToCount(message, '🧮');
 
                 await rollSpawn(message, userNumber, guildId);
             } else {
@@ -223,9 +240,9 @@ module.exports = (client) => {
                 );
                 if (saved) return;
 
-                await message.react('❌').catch(() => {});
                 const reached = countConfig.current_number;
                 resetCount(guildId);
+                await reactToCount(message, '❌');
 
                 const line = fillTokens(pickLine(WRONG_NUMBER_LINES), {
                     user: `${message.author}`,
