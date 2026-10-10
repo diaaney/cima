@@ -13,7 +13,13 @@ const RANKS = Object.freeze([
 ]);
 
 const XP_PER_MESSAGE = 20;
+const BOOSTER_ROLE_ID = process.env.BOOSTER_ROLE_ID?.trim() || '1517433768045183132';
+const BOOSTER_XP_MULTIPLIER = 3;
 const COOLDOWN_MS = 60_000;
+
+function xpForMember(member) {
+    return XP_PER_MESSAGE * (member?.roles.cache.has(BOOSTER_ROLE_ID) ? BOOSTER_XP_MULTIPLIER : 1);
+}
 
 function xpForLevel(level) {
     return 50 * level * (level + 1);
@@ -84,7 +90,7 @@ function awardMessage(guildId, userId, member, now = Date.now()) {
         return { awarded: false, previousLevel, profile: { ...current, level: previousLevel } };
     }
 
-    const updated = { ...current, xp: current.xp + XP_PER_MESSAGE, lastAwardedAt: now };
+    const updated = { ...current, xp: current.xp + xpForMember(member), lastAwardedAt: now };
     data[userId] = updated;
     writeStore(guildId, data);
     return {
@@ -107,7 +113,7 @@ function awardCountingNumber(guildId, userId, member) {
     const updated = {
         ...current,
         countingNumbers,
-        xp: current.xp + (awarded ? XP_PER_MESSAGE : 0),
+        xp: current.xp + (awarded ? xpForMember(member) : 0),
     };
     data[userId] = updated;
     writeStore(guildId, data);
@@ -131,6 +137,9 @@ async function synchronizeRank(member, level) {
 module.exports = {
     RANKS,
     XP_PER_MESSAGE,
+    BOOSTER_ROLE_ID,
+    BOOSTER_XP_MULTIPLIER,
+    xpForMember,
     COOLDOWN_MS,
     xpForLevel,
     levelFromXp,

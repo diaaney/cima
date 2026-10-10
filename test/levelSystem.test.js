@@ -67,6 +67,20 @@ test('ten accepted counting numbers grant one message worth of XP independently 
     assert.equal(profile.countingNumbers, 20);
 });
 
+test('boosters earn triple XP from chat and each ten accepted counting numbers', () => {
+    const member = memberWithRoles([levels.RANKS[0].id, levels.BOOSTER_ROLE_ID]);
+    const first = levels.awardMessage('guild', 'boosting-student', member, 100_000);
+    const blocked = levels.awardMessage('guild', 'boosting-student', member, 130_000);
+    assert.equal(first.profile.xp, 60);
+    assert.equal(blocked.profile.xp, 60);
+
+    for (let number = 1; number <= 10; number++) {
+        levels.awardCountingNumber('guild', 'boosting-student', member);
+    }
+    assert.equal(levels.getProfile('guild', 'boosting-student').xp, 120);
+    assert.equal(levels.xpForMember(member), 60);
+});
+
 test('rank synchronization keeps Booster and unrelated roles', async () => {
     const booster = 'booster';
     const unrelated = 'unrelated';
