@@ -8,21 +8,17 @@ const embeds = require('../../../constants/embeds');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('count')
-        .setDescription('Setup counting game in current channel')
+        .setDescription('Configura el juego de contar en este canal')
         .addSubcommand(sub =>
             sub.setName('setup')
-                .setDescription('Enable counting in this channel')
+                .setDescription('Activa el juego de contar aquí')
         )
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
     async execute(interaction) {
         const channel = interaction.channel;
 
-        // Show thinking state with random verb
-        await interaction.reply({
-            embeds: [embeds.thinking()],
-            ephemeral: true
-        });
+        await interaction.deferReply({ ephemeral: true });
 
         // Set this channel as the counting channel
         setCountingChannel(interaction.guild.id, channel.id);
@@ -33,12 +29,12 @@ module.exports = {
         // Update to success state
         await interaction.editReply({
             embeds: [embeds.success(
-                `Counting game enabled in ${channel}!\n\n` +
-                `**Rules:**\n` +
-                `• Count from 1, 2, 3, etc.\n` +
-                `• Each user must take turns (can't count twice in a row)\n` +
-                `• If someone sends the wrong number, count resets to 0\n` +
-                `• ✅ = Correct | ❌ = Wrong (resets count)`
+                `¡Juego de contar activado en ${channel}!\n\n` +
+                `**Reglas:**\n` +
+                `• Cuenta desde 1, 2, 3...\n` +
+                `• Cada persona debe esperar su turno; no puedes contar dos veces seguidas.\n` +
+                `• Si alguien escribe un número incorrecto, la cuenta vuelve a 0.\n` +
+                `• ✅ = Correcto | ❌ = Incorrecto (reinicia la cuenta).`
             )]
         });
     }

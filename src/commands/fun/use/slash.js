@@ -11,35 +11,35 @@ const { ITEM_DEFS_BY_TYPE } = require('../../../utils/itemDrops');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('use')
-        .setDescription('use an item from your inventory')
+        .setDescription('Usa un objeto de tu inventario')
         .addStringOption(option =>
             option
-                .setName('item')
-                .setDescription('item to use')
+                .setName('objeto')
+                .setDescription('Objeto que quieres usar')
                 .setRequired(true)
                 .addChoices(
-                    { name: 'perfect aim', value: 'perfect_aim' },
-                    { name: 'oracle eye',  value: 'oracle_eye' },
-                    { name: 'sabotage',    value: 'sabotage' },
+                    { name: 'puntería perfecta', value: 'perfect_aim' },
+                    { name: 'ojo oráculo',  value: 'oracle_eye' },
+                    { name: 'sabotaje',    value: 'sabotage' },
                 )
         )
         .addUserOption(option =>
             option
-                .setName('user')
-                .setDescription('target (required for sabotage)')
+                .setName('usuario')
+                .setDescription('Objetivo (necesario para sabotaje)')
                 .setRequired(false)
         ),
 
     async execute(interaction) {
-        const itemType = interaction.options.getString('item');
-        const target = interaction.options.getUser('user');
+        const itemType = interaction.options.getString('objeto');
+        const target = interaction.options.getUser('usuario');
 
         const stats = getUserStats(interaction.user.id);
         const owned = stats.items?.[itemType] || 0;
         if (owned < 1) {
             const def = ITEM_DEFS_BY_TYPE[itemType];
             return interaction.reply({
-                embeds: [embeds.error(`you don't have any ${def?.emoji || ''} **${def?.label || itemType}** in your inventory`)],
+                embeds: [embeds.error(`No tienes ${def?.emoji || ''} **${def?.label || itemType}** en tu inventario.`)],
                 ephemeral: true,
             });
         }
@@ -47,26 +47,26 @@ module.exports = {
         if (itemType === 'sabotage') {
             if (!target) {
                 return interaction.reply({
-                    embeds: [embeds.error('sabotage needs a target. pass `user:@someone`')],
+                    embeds: [embeds.error('El sabotaje necesita un objetivo. Indica `usuario:@alguien`.')],
                     ephemeral: true,
                 });
             }
             if (target.bot) {
                 return interaction.reply({
-                    embeds: [embeds.error('can\'t sabotage a bot.')],
+                    embeds: [embeds.error('No puedes sabotear a un bot.')],
                     ephemeral: true,
                 });
             }
             if (target.id === interaction.user.id) {
                 return interaction.reply({
-                    embeds: [embeds.error('sabotaging yourself? real one. but no.')],
+                    embeds: [embeds.error('No puedes sabotearte a ti mismo.')],
                     ephemeral: true,
                 });
             }
             removeItem(interaction.user.id, 'sabotage', 1);
             setSabotaged(target.id);
             return interaction.reply({
-                content: `💣 ${interaction.user} just sabotaged ${target} — their next count attempt must be a math expression (e.g. \`5+3\` instead of \`8\`)`,
+                content: `💣 ${interaction.user} saboteó a ${target}. Su próximo número debe escribirse como una operación (por ejemplo, \`5+3\` en vez de \`8\`).`,
                 allowedMentions: { parse: ['users'] },
             });
         }
@@ -74,7 +74,7 @@ module.exports = {
         if (itemType === 'perfect_aim') {
             primeItem(interaction.user.id, 'perfect_aim');
             return interaction.reply({
-                embeds: [embeds.success('🎯 **perfect aim** armed. your next booster claim auto-wins.')],
+                embeds: [embeds.success('🎯 **Puntería perfecta** preparada. Ganarás automáticamente el próximo potenciador que reclames.')],
                 ephemeral: true,
             });
         }
@@ -82,13 +82,13 @@ module.exports = {
         if (itemType === 'oracle_eye') {
             primeItem(interaction.user.id, 'oracle_eye');
             return interaction.reply({
-                embeds: [embeds.success('🔮 **oracle eye** armed. your next booster claim will whisper the answer to you.')],
+                embeds: [embeds.success('🔮 **Ojo oráculo** preparado. Verás la respuesta del próximo potenciador que reclames.')],
                 ephemeral: true,
             });
         }
 
         return interaction.reply({
-            embeds: [embeds.error('unknown item.')],
+            embeds: [embeds.error('Objeto desconocido.')],
             ephemeral: true,
         });
     }

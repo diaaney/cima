@@ -4,24 +4,24 @@ const { getUserStats, getCountingConfig } = require('../../../utils/storage');
 const { ITEM_DEFS } = require('../../../utils/itemDrops');
 
 function formatNumber(n) {
-    return n.toLocaleString('en-US');
+    return n.toLocaleString('es-MX');
 }
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('loot')
-        .setDescription('check your counting profile and inventory')
+        .setDescription('Consulta tu perfil del juego y tu inventario')
         .addUserOption(option =>
             option
-                .setName('user')
-                .setDescription('user to inspect (default: you)')
+                .setName('usuario')
+                .setDescription('Usuario que quieres consultar (por defecto, tú)')
                 .setRequired(false)
         ),
 
     async execute(interaction) {
         await interaction.deferReply();
 
-        const target = interaction.options.getUser('user') || interaction.user;
+        const target = interaction.options.getUser('usuario') || interaction.user;
         const stats = getUserStats(target.id);
         const counting = getCountingConfig(interaction.guild.id);
         const currentNumber = counting.current_number || 0;
@@ -37,24 +37,24 @@ module.exports = {
             stats.protecting_through !== undefined &&
             currentNumber <= stats.protecting_through
         ) {
-            statusBits.push(`🛡 protecting through #${stats.protecting_through}`);
+            statusBits.push(`🛡 escudo activo hasta el #${stats.protecting_through}`);
         }
-        if (stats.primed?.perfect_aim) statusBits.push('🎯 primed for perfect aim');
-        if (stats.primed?.oracle_eye) statusBits.push('🔮 primed for oracle eye');
-        if (stats.sabotaged) statusBits.push('💣 sabotaged');
+        if (stats.primed?.perfect_aim) statusBits.push('🎯 puntería perfecta preparada');
+        if (stats.primed?.oracle_eye) statusBits.push('🔮 ojo oráculo preparado');
+        if (stats.sabotaged) statusBits.push('💣 saboteado');
 
         const description = [
-            `📊 **${formatNumber(stats.total_count)}** total counted`,
-            `🔢 **${formatNumber(stats.numbers_counted)}** numbers contributed`,
+            `📊 **${formatNumber(stats.total_count)}** puntos acumulados`,
+            `🔢 **${formatNumber(stats.numbers_counted)}** números aportados`,
             '',
-            '**inventory**',
-            inventoryLines.length > 0 ? inventoryLines.join('\n') : '_empty_',
-            statusBits.length > 0 ? '\n**status**\n' + statusBits.map(s => `• ${s}`).join('\n') : '',
+            '**Inventario**',
+            inventoryLines.length > 0 ? inventoryLines.join('\n') : '_vacío_',
+            statusBits.length > 0 ? '\n**Estado**\n' + statusBits.map(s => `• ${s}`).join('\n') : '',
         ].filter(Boolean).join('\n');
 
         const embed = new EmbedBuilder()
             .setColor(embeds.NEUTRAL_COLOR)
-            .setAuthor({ name: `${target.username}'s loot`, iconURL: target.displayAvatarURL({ size: 128 }) })
+            .setAuthor({ name: `Inventario de ${target.username}`, iconURL: target.displayAvatarURL({ size: 128 }) })
             .setThumbnail(target.displayAvatarURL({ size: 256 }))
             .setDescription(description);
 

@@ -10,7 +10,7 @@ module.exports = {
             return message.reply({
                 embeds: [{
                     color: 0xa82d43,
-                    description: '❌ Usage: `!count setup`'
+                    description: '❌ Uso: `!count setup`'
                 }]
             });
         }
@@ -23,12 +23,12 @@ module.exports = {
         message.reply({
             embeds: [{
                 color: 0x7ab158,
-                description: `✅ Counting game enabled in ${channel}!\n\n` +
-                    `**Rules:**\n` +
-                    `• Count from 1, 2, 3, etc.\n` +
-                    `• Each user must take turns (can't count twice in a row)\n` +
-                    `• If someone sends the wrong number, count resets to 0\n` +
-                    `• ✅ = Correct | ❌ = Wrong (resets count)`
+                description: `✅ ¡Juego de contar activado en ${channel}!\n\n` +
+                    `**Reglas:**\n` +
+                    `• Cuenta desde 1, 2, 3...\n` +
+                    `• Cada persona debe esperar su turno; no puedes contar dos veces seguidas.\n` +
+                    `• Si alguien escribe un número incorrecto, la cuenta vuelve a 0.\n` +
+                    `• ✅ = Correcto | ❌ = Incorrecto (reinicia la cuenta).`
             }]
         });
     }

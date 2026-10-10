@@ -43,6 +43,10 @@ function parseHexColor(input) {
     return parseInt(hex, 16);
 }
 
+function dropLabel(drop) {
+    return ITEM_DEFS_BY_TYPE[drop.item_type]?.label || drop.label;
+}
+
 function isValidIconUrl(url) {
     try {
         const u = new URL(url);
@@ -197,7 +201,7 @@ module.exports = (client) => {
                 const active = getActiveBooster(guildId);
                 if (!active || active.id !== boosterId) {
                     return interaction.reply({
-                        content: 'this booster is already resolved.',
+                        content: 'Este potenciador ya se resolvió.',
                         ephemeral: true,
                     });
                 }
@@ -233,7 +237,7 @@ module.exports = (client) => {
 
                     if (originalMessage) {
                         await originalMessage.edit({
-                            content: `🎯 perfect aim — \`${active.expression}\` = **${active.answer}** (${active.type}) — count jumped to **${toCount}**`,
+                            content: `🎯 Puntería perfecta: \`${active.expression}\` = **${active.answer}** (${active.type}). La cuenta subió a **${toCount}**.`,
                             components: [],
                         }).catch(() => {});
                         await originalMessage.reply({
@@ -243,7 +247,7 @@ module.exports = (client) => {
                     }
 
                     return interaction.editReply({
-                        content: `🎯 perfect aim consumed — booster auto-won, count now **${toCount}**`,
+                        content: `🎯 Usaste puntería perfecta y ganaste el potenciador. La cuenta quedó en **${toCount}**.`,
                     });
                 }
 
@@ -253,15 +257,15 @@ module.exports = (client) => {
                     removeItem(interaction.user.id, 'oracle_eye', 1);
                 }
 
-                const labelText = `answer for ${active.expression}`;
+                const labelText = `Respuesta para ${active.expression}`;
                 const modal = new ModalBuilder()
                     .setCustomId(`booster_answer:${boosterId}`)
-                    .setTitle('solve the booster');
+                    .setTitle('Resuelve el potenciador');
 
                 const input = new TextInputBuilder()
                     .setCustomId('booster_answer_input')
-                    .setLabel(labelText.length > 45 ? `solve ${active.expression}`.slice(0, 45) : labelText)
-                    .setPlaceholder(useOracle ? `🔮 oracle: answer is ${active.answer}` : 'your answer')
+                    .setLabel(labelText.slice(0, 45))
+                    .setPlaceholder(useOracle ? `🔮 La respuesta es ${active.answer}` : 'Tu respuesta')
                     .setStyle(TextInputStyle.Short)
                     .setMinLength(1)
                     .setMaxLength(10)
@@ -278,20 +282,20 @@ module.exports = (client) => {
                 const active = getActiveDrop(guildId);
                 if (!active || active.id !== dropId) {
                     return interaction.reply({
-                        content: 'this drop is already gone.',
+                        content: 'Este premio ya no está disponible.',
                         ephemeral: true,
                     });
                 }
 
-                const labelText = `solve ${active.expression}`;
+                const labelText = `Resuelve ${active.expression}`;
                 const modal = new ModalBuilder()
                     .setCustomId(`drop_answer:${dropId}`)
-                    .setTitle(`claim the ${active.label}`.slice(0, 45));
+                    .setTitle(`Reclama ${dropLabel(active)}`.slice(0, 45));
 
                 const input = new TextInputBuilder()
                     .setCustomId('drop_answer_input')
                     .setLabel(labelText.length > 45 ? labelText.slice(0, 45) : labelText)
-                    .setPlaceholder('your answer')
+                    .setPlaceholder('Tu respuesta')
                     .setStyle(TextInputStyle.Short)
                     .setMinLength(1)
                     .setMaxLength(10)
@@ -439,7 +443,7 @@ module.exports = (client) => {
                 const active = getActiveBooster(guildId);
                 if (!active || active.id !== boosterId) {
                     return interaction.reply({
-                        content: 'someone got there first.',
+                        content: 'Alguien resolvió este potenciador primero.',
                         ephemeral: true,
                     });
                 }
@@ -475,7 +479,7 @@ module.exports = (client) => {
 
                     if (originalMessage) {
                         await originalMessage.edit({
-                            content: `⚡ booster resolved — \`${active.expression}\` = **${active.answer}** (${active.type}) — count jumped to **${toCount}**`,
+                            content: `⚡ Potenciador resuelto: \`${active.expression}\` = **${active.answer}** (${active.type}). La cuenta subió a **${toCount}**.`,
                             components: [],
                         }).catch(() => {});
                         await originalMessage.reply({
@@ -485,7 +489,7 @@ module.exports = (client) => {
                     }
 
                     return interaction.editReply({
-                        content: `you got it — count is now **${toCount}**`,
+                        content: `¡Correcto! La cuenta ahora está en **${toCount}**.`,
                     });
                 } else {
                     clearActiveBooster(guildId);
@@ -499,7 +503,7 @@ module.exports = (client) => {
 
                     if (originalMessage) {
                         await originalMessage.edit({
-                            content: `❌ booster busted — answer was **${active.answer}**`,
+                            content: `❌ Potenciador perdido. La respuesta era **${active.answer}**.`,
                             components: [],
                         }).catch(() => {});
                         await originalMessage.reply({
@@ -509,7 +513,7 @@ module.exports = (client) => {
                     }
 
                     return interaction.editReply({
-                        content: `nope. it was **${active.answer}**`,
+                        content: `Incorrecto. La respuesta era **${active.answer}**.`,
                     });
                 }
             }
@@ -521,7 +525,7 @@ module.exports = (client) => {
                 const active = getActiveDrop(guildId);
                 if (!active || active.id !== dropId) {
                     return interaction.reply({
-                        content: 'someone got there first.',
+                        content: 'Alguien reclamó este premio primero.',
                         ephemeral: true,
                     });
                 }
@@ -549,12 +553,12 @@ module.exports = (client) => {
                         expression: active.expression,
                         answer: active.answer,
                         emoji: active.emoji,
-                        label: active.label,
+                        label: dropLabel(active),
                     });
 
                     if (originalMessage) {
                         await originalMessage.edit({
-                            content: `🎁 ${active.emoji} **${active.label}** claimed by <@${interaction.user.id}>`,
+                            content: `🎁 ${active.emoji} **${dropLabel(active)}** reclamado por <@${interaction.user.id}>.`,
                             components: [],
                         }).catch(() => {});
                         await originalMessage.reply({
@@ -564,7 +568,7 @@ module.exports = (client) => {
                     }
 
                     return interaction.editReply({
-                        content: `🎁 you got a ${active.emoji} **${active.label}**`,
+                        content: `🎁 Ganaste ${active.emoji} **${dropLabel(active)}**.`,
                     });
                 } else {
                     clearActiveDrop(guildId);
@@ -575,12 +579,12 @@ module.exports = (client) => {
                         answer: active.answer,
                         guess: isNumber ? guess : (raw || '???'),
                         emoji: active.emoji,
-                        label: active.label,
+                        label: dropLabel(active),
                     });
 
                     if (originalMessage) {
                         await originalMessage.edit({
-                            content: `🎁❌ the ${active.emoji} **${active.label}** vanishes — answer was **${active.answer}**`,
+                            content: `🎁❌ ${active.emoji} **${dropLabel(active)}** desapareció. La respuesta era **${active.answer}**.`,
                             components: [],
                         }).catch(() => {});
                         await originalMessage.reply({
@@ -590,7 +594,7 @@ module.exports = (client) => {
                     }
 
                     return interaction.editReply({
-                        content: `nope. it was **${active.answer}**`,
+                        content: `Incorrecto. La respuesta era **${active.answer}**.`,
                     });
                 }
             }

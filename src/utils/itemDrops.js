@@ -1,10 +1,10 @@
 const crypto = require('crypto');
 
 const ITEM_DEFS = [
-    { type: 'streak_shield', emoji: '🛡', label: 'streak shield', weight: 4 },
-    { type: 'perfect_aim',  emoji: '🎯', label: 'perfect aim',  weight: 2 },
-    { type: 'oracle_eye',   emoji: '🔮', label: 'oracle eye',   weight: 2 },
-    { type: 'sabotage',     emoji: '💣', label: 'sabotage',     weight: 3 },
+    { type: 'streak_shield', emoji: '🛡', label: 'escudo de racha', weight: 4 },
+    { type: 'perfect_aim',  emoji: '🎯', label: 'puntería perfecta', weight: 2 },
+    { type: 'oracle_eye',   emoji: '🔮', label: 'ojo oráculo', weight: 2 },
+    { type: 'sabotage',     emoji: '💣', label: 'sabotaje', weight: 3 },
 ];
 
 const ITEM_DEFS_BY_TYPE = Object.fromEntries(ITEM_DEFS.map(i => [i.type, i]));

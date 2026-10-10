@@ -38,11 +38,11 @@ async function spawnBooster(message, userNumber, guildId) {
     const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
             .setCustomId(`booster_claim:${booster.id}`)
-            .setLabel('claim it')
+            .setLabel('Resolver')
             .setEmoji('🎯')
             .setStyle(ButtonStyle.Primary)
     );
-    const content = `⚡ booster spawned — solve \`${booster.expression}\` and the count gets **${booster.type}**`;
+    const content = `⚡ ¡Apareció un potenciador! Resuelve \`${booster.expression}\` para aplicar **${booster.type}** a la cuenta.`;
     try {
         const sent = await message.channel.send({ content, components: [row] });
         booster.channel_id = sent.channelId;
@@ -59,11 +59,11 @@ async function spawnDrop(message, userNumber, guildId) {
     const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
             .setCustomId(`drop_claim:${drop.id}`)
-            .setLabel('claim it')
+            .setLabel('Reclamar')
             .setEmoji('🎯')
             .setStyle(ButtonStyle.Success)
     );
-    const content = `🎁 a ${drop.emoji} **${drop.label}** appeared — solve \`${drop.expression}\` to claim it`;
+    const content = `🎁 ¡Apareció ${drop.emoji} **${drop.label}**! Resuelve \`${drop.expression}\` para reclamarlo.`;
     try {
         const sent = await message.channel.send({ content, components: [row] });
         drop.channel_id = sent.channelId;

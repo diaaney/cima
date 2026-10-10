@@ -3,13 +3,13 @@ const embeds = require('../../../constants/embeds');
 const { getAllUserStats } = require('../../../utils/storage');
 
 function formatNumber(n) {
-    return n.toLocaleString('en-US');
+    return n.toLocaleString('es-MX');
 }
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('top')
-        .setDescription('counting leaderboard — top 10 by total count'),
+        .setDescription('Clasificación del juego de contar: los 10 primeros'),
 
     async execute(interaction) {
         await interaction.deferReply();
@@ -23,7 +23,7 @@ module.exports = {
         if (ranked.length === 0) {
             const embed = new EmbedBuilder()
                 .setColor(embeds.NEUTRAL_COLOR)
-                .setDescription('nobody has counted yet. be the first.');
+                .setDescription('Todavía nadie ha contado. ¡Sé la primera persona!');
             return interaction.editReply({ embeds: [embed] });
         }
 
@@ -33,20 +33,20 @@ module.exports = {
         const lines = await Promise.all(top.map(async (entry, idx) => {
             const prefix = idx < 3 ? medals[idx] : `**${idx + 1}.**`;
             const user = await interaction.client.users.fetch(entry.id).catch(() => null);
-            const name = user ? user.username : `user-${entry.id.slice(-4)}`;
-            return `${prefix} ${name} — **${formatNumber(entry.total)}** (${formatNumber(entry.counted)} counts)`;
+            const name = user ? user.username : `usuario-${entry.id.slice(-4)}`;
+            return `${prefix} ${name} — **${formatNumber(entry.total)}** puntos (${formatNumber(entry.counted)} números)`;
         }));
 
         let footer = '';
         const myIndex = ranked.findIndex(e => e.id === interaction.user.id);
         if (myIndex >= 10) {
             const me = ranked[myIndex];
-            footer = `\n\nyou: **#${myIndex + 1}** — ${formatNumber(me.total)} total`;
+            footer = `\n\nTu puesto: **#${myIndex + 1}** — ${formatNumber(me.total)} puntos`;
         }
 
         const embed = new EmbedBuilder()
             .setColor(embeds.NEUTRAL_COLOR)
-            .setTitle('🏆 counting leaderboard')
+            .setTitle('🏆 Clasificación del juego de contar')
             .setDescription(lines.join('\n') + footer);
 
         await interaction.editReply({ embeds: [embed] });
