@@ -51,7 +51,11 @@ function welcomeEmbed(guildName) {
     return new EmbedBuilder()
         .setColor(embeds.NEUTRAL_COLOR)
         .setTitle(`bienvenid@ a ${guildName} ♡`)
-        .setDescription('Para acceder a Comunidad UABC, verifica tu correo institucional. Haz clic abajo, escribe tu correo y recibirás un código válido durante 10 minutos. Después de ingresarlo, Cima te dará el rol Aspirante y quitará tu rol sin verificar.')
+        .setDescription(
+            'Debido a que entraron varias cuentas alternativas a causar desorden, pedimos verificar el correo institucional para cuidar Comunidad UABC.\n\n' +
+            'Pulsa **Verificar mi correo**, escribe tu dirección **@uabc.edu.mx** y recibirás un código de seis dígitos válido durante **10 minutos**. Revisa también spam. Después pulsa **Ingresar código**: recibirás **Aspirante** y se quitará **Sin Verificar**.\n\n' +
+            '**Privacidad:** nunca te pedimos contraseñas ni datos académicos. Guardamos el código como hash; después conservamos el correo vinculado a tu ID de Discord y la fecha de verificación para evitar cuentas duplicadas.'
+        )
         .setFooter({ text: 'Cima • verificación UABC' });
 }
 

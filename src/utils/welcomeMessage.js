@@ -17,9 +17,18 @@ function buildWelcomeDescription(guild) {
 
     let description = 'bienvenido a Nexo UABC ⸜(｡˃ ᵕ ˂ )⸝♡';
 
+    if (guild.id === UABC_GUILD_ID) {
+        description += '\n\nRevisa tus MD de **Cima** para verificar tu correo institucional. Si no te llegó el mensaje, usa `/verificar`. Al verificarte recibirás **Aspirante** y podrás empezar a subir de nivel con `/nivel`.';
+    }
+
     if (featured.length) {
-        const line = featured.map(id => `<#${id}>`).join('      ');
-        description += `\n\n${line}`;
+        const descriptions = {
+            '1552775123222794250': 'lee las reglas',
+            '1512976564541849760': 'platica con la comunidad',
+            '1558343245229203526': 'juega counting',
+        };
+        const lines = featured.map(id => `• <#${id}>${descriptions[id] ? ` · ${descriptions[id]}` : ''}`);
+        description += `\n\n**Para empezar**\n${lines.join('\n')}`;
     }
 
     return description;
