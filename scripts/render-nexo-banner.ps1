@@ -8,7 +8,7 @@ Add-Type -AssemblyName System.Drawing
 $assets = Join-Path $ProjectRoot 'assets'
 $source = Join-Path $assets 'nexo-uabc-banner-verde.png'
 $mark = Join-Path $assets 'uabc-mark-white.png'
-$discordSymbol = Join-Path $assets 'discord-symbol-white.svg'
+$discordSymbol = Join-Path $assets 'discord-symbol-blurple.svg'
 $svg = Join-Path $assets 'uabc-comunidad-discord-banner.svg'
 $png = Join-Path $assets 'uabc-comunidad-discord-banner.png'
 
@@ -138,16 +138,16 @@ public static class BannerTaglineOutliner {
 if (-not ('BannerTaglineOutliner' -as [type])) {
     Add-Type -TypeDefinition $textOutliner -ReferencedAssemblies System.Drawing
 }
-$taglineFont = Join-Path $assets 'fonts\Poppins-SemiBold.ttf'
+$taglineFont = Join-Path $assets 'fonts\DMSans-Semibold.ttf'
 $tagline = 'Comunidad de'
-$taglineHeight = 86
+$taglineHeight = 90
 $taglineWidth = [BannerTaglineOutliner]::Width($taglineFont, $tagline, $taglineHeight)
-$symbolWidth = 150
-$symbolHeight = 112.5
-$gap = 36
+$symbolWidth = 160
+$symbolHeight = 120
+$gap = 38
 $taglineX = (1920 - $taglineWidth - $gap - $symbolWidth) / 2
 $symbolX = $taglineX + $taglineWidth + $gap
-$taglinePath = [BannerTaglineOutliner]::Make($taglineFont, $tagline, $taglineX, 850, $taglineHeight)
+$taglinePath = [BannerTaglineOutliner]::Make($taglineFont, $tagline, $taglineX, 824, $taglineHeight)
 $symbolData = [Convert]::ToBase64String([System.IO.File]::ReadAllBytes($discordSymbol))
 $symbolXText = $symbolX.ToString('0.###', [System.Globalization.CultureInfo]::InvariantCulture)
 $symbolWidthText = $symbolWidth.ToString('0.###', [System.Globalization.CultureInfo]::InvariantCulture)
@@ -155,10 +155,18 @@ $symbolHeightText = $symbolHeight.ToString('0.###', [System.Globalization.Cultur
 
 $svgContent = @'
 <svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
-  <rect width="1920" height="1080" fill="#17382d"/>
-  <image href="data:image/png;base64,__MARK_DATA__" x="510" y="230" width="900" height="445"/>
+  <defs>
+    <radialGradient id="background" cx="50%" cy="43%" r="72%">
+      <stop offset="0%" stop-color="#1b4635"/>
+      <stop offset="65%" stop-color="#12362a"/>
+      <stop offset="100%" stop-color="#0b241d"/>
+    </radialGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#background)"/>
+  <image href="data:image/png;base64,__MARK_DATA__" x="580" y="230" width="760" height="376"/>
+  <rect x="405" y="742" width="1110" height="172" rx="86" fill="#295540" fill-opacity=".44" stroke="#9cc2a6" stroke-opacity=".26" stroke-width="2"/>
   <path d="__TAGLINE_PATH__" fill="#fbfaf7"/>
-  <image href="data:image/svg+xml;base64,__SYMBOL_DATA__" x="__SYMBOL_X__" y="794" width="__SYMBOL_WIDTH__" height="__SYMBOL_HEIGHT__"/>
+  <image href="data:image/svg+xml;base64,__SYMBOL_DATA__" x="__SYMBOL_X__" y="764" width="__SYMBOL_WIDTH__" height="__SYMBOL_HEIGHT__"/>
 </svg>
 '@
 $svgContent = $svgContent.Replace('__TAGLINE_PATH__', $taglinePath).Replace('__MARK_DATA__', $markData).Replace('__SYMBOL_DATA__', $symbolData).Replace('__SYMBOL_X__', $symbolXText).Replace('__SYMBOL_WIDTH__', $symbolWidthText).Replace('__SYMBOL_HEIGHT__', $symbolHeightText)
