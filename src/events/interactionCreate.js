@@ -175,10 +175,15 @@ module.exports = (client) => {
                 await command.execute(interaction);
             } catch (err) {
                 console.error(err);
-                await interaction.reply({
+                const errorReply = {
                     embeds: [embeds.error('Error executing command.')],
                     ephemeral: true
-                });
+                };
+                if (interaction.deferred || interaction.replied) {
+                    await interaction.followUp(errorReply).catch(error => console.error('[Commands] Could not report error:', error));
+                } else {
+                    await interaction.reply(errorReply).catch(error => console.error('[Commands] Could not report error:', error));
+                }
             }
             return;
         }
