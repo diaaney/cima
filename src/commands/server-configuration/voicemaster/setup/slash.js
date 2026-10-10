@@ -55,22 +55,22 @@ module.exports = {
 
         // Embed del panel
         const panelEmbed = new EmbedBuilder()
-            .setAuthor({ name: 'VoiceMaster Interface', iconURL: guild.iconURL() })
-            .setDescription(`Use the buttons below to control your voice channel.\n\n**Button Usage**\n` +
-                `${markup('lock')} — **\`Lock\`** the voice channel\n` +
-                `${markup('unlock')} — **\`Unlock\`** the voice channel\n` +
-                `${markup('ghost')} — **\`Ghost\`** the voice channel\n` +
-                `${markup('reveal')} — **\`Reveal\`** the voice channel\n` +
-                `${markup('claim')} — **\`Claim\`** the voice channel\n` +
-                `${markup('disconnect')} — **\`Disconnect\`** a member\n` +
-                `${markup('start')} — **\`Start\`** an activity\n` +
-                `${markup('info')} — **\`View\`** channel information\n` +
-                `${markup('increase')} — **\`Increase\`** the user limit\n` +
-                `${markup('decrease')} — **\`Decrease\`** the user limit`
+            .setAuthor({ name: 'VoiceMaster • voice chat', iconURL: guild.iconURL() })
+            .setDescription(`Personaliza tu voice chat con estos controles:\n\n**Controles**\n` +
+                `${markup('lock')} — **\`Lock\`** · Bloquea la entrada a tu canal.\n` +
+                `${markup('unlock')} — **\`Unlock\`** · Permite que vuelvan a entrar.\n` +
+                `${markup('ghost')} — **\`Ghost\`** · Oculta tu canal a los demás.\n` +
+                `${markup('reveal')} — **\`Reveal\`** · Vuelve a mostrar tu canal.\n` +
+                `${markup('claim')} — **\`Claim\`** · Reclama el canal en el que estás.\n` +
+                `${markup('disconnect')} — **\`Disconnect\`** · Saca a alguien de tu canal.\n` +
+                `${markup('start')} — **\`Start\`** · Te indica cómo iniciar actividades desde Discord.\n` +
+                `${markup('info')} — **\`Info\`** · Muestra los datos de tu canal.\n` +
+                `${markup('increase')} — **\`Increase\`** · Sube el límite de usuarios.\n` +
+                `${markup('decrease')} — **\`Decrease\`** · Baja el límite de usuarios.`
             )
             .setColor(embeds.NEUTRAL_COLOR)
             .setThumbnail(vmLogoPath)
-            .setFooter({ text: 'VoiceMaster by Cima' });
+            .setFooter({ text: 'VoiceMaster by UABC' });
 
         const row1 = new ActionRowBuilder().addComponents(
             new ButtonBuilder().setCustomId('vm_lock').setEmoji(id('lock')).setStyle(ButtonStyle.Secondary),
