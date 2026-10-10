@@ -1,4 +1,5 @@
-const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } = require('discord.js');
+const path = require('node:path');
+const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits, AttachmentBuilder } = require('discord.js');
 const embeds = require('../../../constants/embeds');
 const { getCountingConfig, getVoicemasterConfig, getWelcomeConfig } = require('../../../utils/storage');
 const { RANKS, BOOSTER_ROLE_ID, BOOSTER_XP_MULTIPLIER, UABC_TAG_XP_MULTIPLIER } = require('../../../utils/levelSystem');
@@ -6,6 +7,8 @@ const { RANKS, BOOSTER_ROLE_ID, BOOSTER_XP_MULTIPLIER, UABC_TAG_XP_MULTIPLIER } 
 const RULES_CHANNEL_ID = '1552775123222794250';
 const GENERAL_CHANNEL_ID = '1512976564541849760';
 const UNVERIFIED_ROLE_ID = process.env.UNVERIFIED_ROLE_ID?.trim() || '1558337666729115678';
+const TAG_IMAGE_NAME = 'uabc-tag-guide.png';
+const TAG_IMAGE_PATH = path.join(__dirname, '../../../../assets', TAG_IMAGE_NAME);
 const RANK_COLORS = {
     'Leyenda Cimarrona': 'Custom',
     'Orgullo Cimarrón': 'Golden',
@@ -14,8 +17,6 @@ const RANK_COLORS = {
 };
 
 function buildInfoEmbeds(guild) {
-    const tagBadge = guild.emojis?.cache.find(item => item.name === 'uabc_tag');
-    const tagImageUrl = tagBadge ? `https://cdn.discordapp.com/emojis/${tagBadge.id}.png?size=128` : null;
     const emoji = name => {
         const found = guild.emojis?.cache.find(item => item.name === name);
         return found ? `<:${found.name}:${found.id}>` : '';
@@ -44,7 +45,7 @@ function buildInfoEmbeds(guild) {
             `• ${generator} · entra para crear tu propio voice chat.\n` +
             `• ${panel} · personaliza ese canal de voz.${welcomeId && welcomeId !== GENERAL_CHANNEL_ID ? `\n• <#${welcomeId}> · recibe a quienes llegan.` : ''}`
         );
-    if (tagImageUrl) welcomeEmbed.setThumbnail(tagImageUrl);
+    welcomeEmbed.setImage(`attachment://${TAG_IMAGE_NAME}`);
 
     const commandsEmbed = new EmbedBuilder()
         .setColor(embeds.NEUTRAL_COLOR)
@@ -68,7 +69,7 @@ function buildInfoEmbeds(guild) {
             [...RANKS].reverse().map(rank => `• ${rankEmoji[rank.name] ? `${rankEmoji[rank.name]} ` : ''}<@&${rank.id}>${RANK_COLORS[rank.name] ? ` (**${RANK_COLORS[rank.name]}**)` : ''} · nivel **${rank.level}**`).join('\n') +
             `\n\nCada mensaje válido fuera de counting da **20 XP**, como máximo una vez por minuto. Cada **10 números válidos** en counting dan otros **20 XP**. El tag **UABC** da **x${UABC_TAG_XP_MULTIPLIER} XP** y <@&${BOOSTER_ROLE_ID}> da **x${BOOSTER_XP_MULTIPLIER} XP**. **No se suman:** si tienes ambos, recibes x${BOOSTER_XP_MULTIPLIER}. Usa \`/nivel\` para ver tu progreso.`
         );
-    if (tagImageUrl) ranksEmbed.setThumbnail(tagImageUrl);
+    ranksEmbed.setImage(`attachment://${TAG_IMAGE_NAME}`);
 
     return [welcomeEmbed, commandsEmbed, ranksEmbed];
 }
@@ -118,7 +119,11 @@ module.exports = {
         await interaction.deferReply({ ephemeral: true });
         if (type === 'info') await interaction.guild.emojis.fetch();
         const selected = type === 'verificacion' ? [buildVerificationEmbed()] : buildInfoEmbeds(interaction.guild);
-        await interaction.channel.send({ embeds: selected, allowedMentions: { parse: [] } });
+        await interaction.channel.send({
+            embeds: selected,
+            files: type === 'info' ? [new AttachmentBuilder(TAG_IMAGE_PATH, { name: TAG_IMAGE_NAME })] : [],
+            allowedMentions: { parse: [] },
+        });
         await interaction.editReply({ embeds: [embeds.success(`Guía de ${type === 'info' ? 'información' : 'verificación'} publicada en ${interaction.channel}.`)] });
     },
 
