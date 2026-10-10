@@ -72,7 +72,7 @@ function buildInfoEmbeds(guild) {
             [...RANKS].reverse().map(rank => `• <@&${rank.id}>${rankEmoji[rank.name] ? ` ${rankEmoji[rank.name]}` : ''}${RANK_COLORS[rank.name] ? ` (**${RANK_COLORS[rank.name]}**)` : ''} · nivel **${rank.level}**`).join('\n') +
             `\n\n**Roles especiales**\n` +
             `• <@&${BOOSTER_ROLE_ID}> ${emoji('booster_gem')} · x${BOOSTER_XP_MULTIPLIER} XP.\n` +
-            `• <@&${EARLY_SUPPORTER_ROLE_ID}> ${emoji('early_supporter')} · reconocimiento a quienes apoyaron al servidor desde el inicio.\n\n` +
+            `• <@&${EARLY_SUPPORTER_ROLE_ID}> ${emoji('early_supporter')}\n\n` +
             `Cada mensaje válido fuera de counting da **20 XP**, como máximo una vez por minuto. Cada **10 números válidos** en counting dan otros **20 XP**. El tag ${uabcTag} da **x${UABC_TAG_XP_MULTIPLIER} XP** y Booster da **x${BOOSTER_XP_MULTIPLIER} XP**. **No se suman:** si tienes ambos, recibes x${BOOSTER_XP_MULTIPLIER}. Usa \`/nivel\` para ver tu progreso.`
         );
 
