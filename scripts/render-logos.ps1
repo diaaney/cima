@@ -15,39 +15,8 @@ $nexoSvg = @'
 </svg>
 '@
 
-$cimaMark = @'
-  <g fill="none" stroke="#ffffff" stroke-width="106" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M 446 389 C 402 295 293 264 215 326 C 115 405 128 531 209 591 C 279 643 357 609 356 547"/>
-    <path d="M 578 389 C 622 295 731 264 809 326 C 909 405 896 531 815 591 C 745 643 667 609 668 547"/>
-  </g>
-  <defs>
-    <mask id="face">
-      <rect width="1024" height="1024" fill="#ffffff"/>
-      <path d="M 420 518 Q 448 494 478 519 Q 450 537 420 518 Z" fill="#000000"/>
-      <path d="M 604 518 Q 576 494 546 519 Q 574 537 604 518 Z" fill="#000000"/>
-      <path d="M 486 650 Q 512 636 538 650 L 512 680 Z" fill="#000000"/>
-      <path d="M 476 702 Q 512 724 548 702" fill="none" stroke="#000000" stroke-width="12" stroke-linecap="round"/>
-    </mask>
-  </defs>
-  <path fill="#ffffff" mask="url(#face)" d="M 512 310 C 618 310 682 391 665 518 L 649 632 C 636 704 583 778 512 825 C 441 778 388 704 375 632 L 359 518 C 342 391 406 310 512 310 Z"/>
-'@
-
-$cimaSvg = @"
-<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
-$cimaMark
-</svg>
-"@
-$cimaAvatarSvg = @"
-<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
-  <rect width="1024" height="1024" fill="#17382d"/>
-$cimaMark
-</svg>
-"@
-
 $files = @(
-    @{ Name = 'nexo-discord-icon'; Svg = $nexoSvg; Transparent = $false },
-    @{ Name = 'cima-cimarron-white'; Svg = $cimaSvg; Transparent = $true },
-    @{ Name = 'cima-discord-avatar'; Svg = $cimaAvatarSvg; Transparent = $false }
+    @{ Name = 'nexo-discord-icon'; Svg = $nexoSvg; Transparent = $false }
 )
 
 foreach ($item in $files) {
@@ -70,3 +39,23 @@ foreach ($item in $files) {
     } finally { $check.Dispose() }
     Write-Output "Rendered $pngPath (1024x1024)"
 }
+
+$mascotPath = Join-Path $assets 'cima-cimarron-white.png'
+if (-not (Test-Path -LiteralPath $mascotPath)) { throw "Missing mascot image: $mascotPath" }
+$avatarPath = Join-Path $assets 'cima-discord-avatar.png'
+$mascot = [System.Drawing.Image]::FromFile($mascotPath)
+$avatar = [System.Drawing.Bitmap]::new(1024, 1024)
+$graphics = [System.Drawing.Graphics]::FromImage($avatar)
+try {
+    $graphics.Clear([System.Drawing.ColorTranslator]::FromHtml('#17382d'))
+    $graphics.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+    $graphics.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
+    $graphics.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+    $graphics.DrawImage($mascot, [System.Drawing.Rectangle]::new(87, 87, 850, 850))
+    $avatar.Save($avatarPath, [System.Drawing.Imaging.ImageFormat]::Png)
+} finally {
+    $graphics.Dispose()
+    $avatar.Dispose()
+    $mascot.Dispose()
+}
+Write-Output "Rendered $avatarPath (1024x1024)"
