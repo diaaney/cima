@@ -45,7 +45,7 @@ module.exports = (client) => {
             const welcomeEmbed = new EmbedBuilder()
                 .setColor(embeds.NEUTRAL_COLOR)
                 .setAuthor({
-                    name: `wlc ${member.displayName} <3`,
+                    name: `wlc ${member.displayName} !!`,
                     iconURL: avatarURL
                 })
                 .setDescription(buildWelcomeDescription(member.guild))
