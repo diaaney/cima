@@ -67,3 +67,53 @@ test('a member who leaves the generator is not moved and their empty room is rem
         delete require.cache[handlerPath];
     }
 });
+
+test('saved voice rooms resume cleanup after restart and ignore music bots', async t => {
+    const storagePath = require.resolve('../src/utils/storage');
+    const handlerPath = require.resolve('../src/events/voiceStateUpdate');
+    const originalStorage = require(storagePath);
+    const deleted = [];
+    const intervals = [];
+    let now = 0;
+    let humanPresent = true;
+
+    require.cache[storagePath].exports = {
+        ...originalStorage,
+        getAllRooms: () => [{ channel_id: 'saved-room' }],
+        deleteRoom: id => deleted.push(id),
+    };
+    delete require.cache[handlerPath];
+    t.mock.method(Date, 'now', () => now);
+    t.mock.method(global, 'setInterval', callback => { intervals.push(callback); return intervals.length; });
+    t.mock.method(global, 'clearInterval', () => {});
+
+    try {
+        const client = new EventEmitter();
+        let channelDeleted = false;
+        const channel = {
+            id: 'saved-room',
+            guild: { id: 'guild' },
+            members: { some: predicate => [
+                { user: { bot: true } },
+                ...(humanPresent ? [{ user: { bot: false } }] : []),
+            ].some(predicate) },
+            delete: async () => { channelDeleted = true; },
+        };
+        client.channels = { cache: { get: () => channel }, fetch: async () => channel };
+        require(handlerPath)(client);
+        client.emit('ready');
+        await new Promise(resolve => setImmediate(resolve));
+
+        now = 16_000;
+        await intervals[0]();
+        assert.equal(channelDeleted, false);
+
+        humanPresent = false;
+        await intervals[0]();
+        assert.equal(channelDeleted, true);
+        assert.deepEqual(deleted, ['saved-room']);
+    } finally {
+        require.cache[storagePath].exports = originalStorage;
+        delete require.cache[handlerPath];
+    }
+});
