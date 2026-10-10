@@ -43,6 +43,30 @@ test('messages earn XP once per minute and retain an existing rank as the starti
     assert.equal(second.profile.xp, levels.xpForLevel(10) + 40);
 });
 
+test('ten accepted counting numbers grant one message worth of XP independently of chat cooldown', () => {
+    const member = memberWithRoles([levels.RANKS[0].id]);
+    for (let number = 1; number < 10; number++) {
+        const result = levels.awardCountingNumber('guild', 'counter', member);
+        assert.equal(result.awarded, false);
+        assert.equal(result.profile.xp, 0);
+    }
+
+    const tenth = levels.awardCountingNumber('guild', 'counter', member);
+    assert.equal(tenth.awarded, true);
+    assert.equal(tenth.profile.xp, levels.XP_PER_MESSAGE);
+    assert.equal(tenth.profile.countingNumbers, 10);
+
+    const chat = levels.awardMessage('guild', 'counter', member, 100_000);
+    assert.equal(chat.awarded, true);
+    assert.equal(chat.profile.xp, levels.XP_PER_MESSAGE * 2);
+    assert.equal(chat.profile.countingNumbers, 10);
+
+    for (let number = 11; number <= 20; number++) levels.awardCountingNumber('guild', 'counter', member);
+    const profile = levels.getProfile('guild', 'counter', member);
+    assert.equal(profile.xp, levels.XP_PER_MESSAGE * 3);
+    assert.equal(profile.countingNumbers, 20);
+});
+
 test('rank synchronization keeps Booster and unrelated roles', async () => {
     const booster = 'booster';
     const unrelated = 'unrelated';

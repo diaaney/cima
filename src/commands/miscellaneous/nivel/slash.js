@@ -62,7 +62,8 @@ module.exports = {
             embeds: [embeds.info(
                 `**${user.username}** · nivel **${profile.level}**\n` +
                 `Rango: **${rank.name}**\n` +
-                `${bar} **${progress}/${needed} XP** para el nivel ${profile.level + 1}`
+                `${bar} **${progress}/${needed} XP** para el nivel ${profile.level + 1}\n` +
+                `Counting: **${profile.countingNumbers % 10}/10** números para +20 XP`
             )],
         });
     },

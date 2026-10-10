@@ -60,7 +60,12 @@ function getProfile(guildId, userId, member = null) {
     const saved = readStore(guildId)[userId];
     const baseline = member ? highestMemberRank(member) : null;
     const xp = saved?.xp ?? xpForLevel(baseline?.level ?? 0);
-    return { xp, level: levelFromXp(xp), lastAwardedAt: saved?.lastAwardedAt ?? 0 };
+    return {
+        xp,
+        level: levelFromXp(xp),
+        lastAwardedAt: saved?.lastAwardedAt ?? 0,
+        countingNumbers: saved?.countingNumbers ?? 0,
+    };
 }
 
 function awardMessage(guildId, userId, member, now = Date.now()) {
@@ -68,13 +73,14 @@ function awardMessage(guildId, userId, member, now = Date.now()) {
     const current = data[userId] || {
         xp: xpForLevel(highestMemberRank(member)?.level ?? 0),
         lastAwardedAt: 0,
+        countingNumbers: 0,
     };
     const previousLevel = levelFromXp(current.xp);
     if (current.lastAwardedAt && now - current.lastAwardedAt < COOLDOWN_MS) {
         return { awarded: false, previousLevel, profile: { ...current, level: previousLevel } };
     }
 
-    const updated = { xp: current.xp + XP_PER_MESSAGE, lastAwardedAt: now };
+    const updated = { ...current, xp: current.xp + XP_PER_MESSAGE, lastAwardedAt: now };
     data[userId] = updated;
     writeStore(guildId, data);
     return {
@@ -82,6 +88,26 @@ function awardMessage(guildId, userId, member, now = Date.now()) {
         previousLevel,
         profile: { ...updated, level: levelFromXp(updated.xp) },
     };
+}
+
+function awardCountingNumber(guildId, userId, member) {
+    const data = readStore(guildId);
+    const current = data[userId] || {
+        xp: xpForLevel(highestMemberRank(member)?.level ?? 0),
+        lastAwardedAt: 0,
+        countingNumbers: 0,
+    };
+    const previousLevel = levelFromXp(current.xp);
+    const countingNumbers = (current.countingNumbers || 0) + 1;
+    const awarded = countingNumbers % 10 === 0;
+    const updated = {
+        ...current,
+        countingNumbers,
+        xp: current.xp + (awarded ? XP_PER_MESSAGE : 0),
+    };
+    data[userId] = updated;
+    writeStore(guildId, data);
+    return { awarded, previousLevel, profile: { ...updated, level: levelFromXp(updated.xp) } };
 }
 
 async function synchronizeRank(member, level) {
@@ -108,5 +134,6 @@ module.exports = {
     highestMemberRank,
     getProfile,
     awardMessage,
+    awardCountingNumber,
     synchronizeRank,
 };

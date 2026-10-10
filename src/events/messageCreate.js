@@ -23,6 +23,12 @@ const { generateBooster, generateOperation } = require('../utils/boosterOps');
 const { generateDrop, ITEM_DEFS_BY_TYPE } = require('../utils/itemDrops');
 const { evaluateExpression, isPureInteger } = require('../utils/safeMath');
 const {
+    awardCountingNumber,
+    highestMemberRank,
+    rankForLevel,
+    synchronizeRank,
+} = require('../utils/levelSystem');
+const {
     WRONG_NUMBER_LINES,
     SHIELD_SAVE_LINES,
     SABOTAGE_FUMBLE_LINES,
@@ -32,6 +38,31 @@ const {
 
 const BOOSTER_CHANCE = 0.08;
 const DROP_CHANCE = 0.04;
+
+async function creditCountingXp(message, guildId) {
+    if (guildId !== process.env.GUILD_ID?.trim() || !message.member) return;
+    if (message.member.roles.cache.has(process.env.UNVERIFIED_ROLE_ID?.trim())) return;
+    if (!highestMemberRank(message.member)) return;
+
+    try {
+        const result = awardCountingNumber(guildId, message.author.id, message.member);
+        if (!result.awarded) return;
+
+        const previousRank = rankForLevel(result.previousLevel);
+        const currentRank = rankForLevel(result.profile.level);
+        const { changed } = await synchronizeRank(message.member, result.profile.level);
+        if (changed && previousRank.id !== currentRank.id) {
+            await message.channel.send({
+                content: `🎉 ${message.author} llegó al nivel **${result.profile.level}** y ahora es **${currentRank.name}**.`,
+                allowedMentions: { users: [message.author.id] },
+            }).catch(error => {
+                console.warn('[Levels] No pude anunciar el nuevo rango:', error?.message || error);
+            });
+        }
+    } catch (error) {
+        console.error(`[Levels] No pude acreditar counting a ${message.author.id}:`, error?.message || error);
+    }
+}
 
 async function reactToCount(message, emoji, fallback) {
     try {
@@ -227,6 +258,7 @@ module.exports = (client) => {
                 updateCount(guildId, userNumber, message.author.id);
                 addToTotalCount(message.author.id, userNumber);
                 armShield(message.author.id, userNumber);
+                void creditCountingXp(message, guildId);
 
                 await reactToCount(message, '✅', `✅ **${userNumber}** contado. Sigue el **${userNumber + 1}**.`);
                 if (isMathSubmission) await reactToCount(message, '🧮');
