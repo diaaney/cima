@@ -1,7 +1,7 @@
 const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } = require('discord.js');
 const embeds = require('../../../constants/embeds');
 const { getCountingConfig, getVoicemasterConfig, getWelcomeConfig } = require('../../../utils/storage');
-const { RANKS, BOOSTER_ROLE_ID, BOOSTER_XP_MULTIPLIER } = require('../../../utils/levelSystem');
+const { RANKS, BOOSTER_ROLE_ID, BOOSTER_XP_MULTIPLIER, UABC_TAG_XP_MULTIPLIER } = require('../../../utils/levelSystem');
 
 const RULES_CHANNEL_ID = '1552775123222794250';
 const GENERAL_CHANNEL_ID = '1512976564541849760';
@@ -14,6 +14,15 @@ const RANK_COLORS = {
 };
 
 function buildInfoEmbeds(guild) {
+    const emoji = name => {
+        const found = guild.emojis?.cache.find(item => item.name === name);
+        return found ? `<:${found.name}:${found.id}>` : '';
+    };
+    const rankEmoji = {
+        'Cimarrón Avanzado': emoji('rank_holo'),
+        'Cimarrón Veterano': emoji('rank_crimson'),
+        'Orgullo Cimarrón': emoji('rank_golden'),
+    };
     const countingId = getCountingConfig(guild.id).channel_id;
     const voice = getVoicemasterConfig(guild.id);
     const welcomeId = getWelcomeConfig(guild.id).channel_id;
@@ -26,7 +35,7 @@ function buildInfoEmbeds(guild) {
         .setTitle('Bienvenido a Nexo UABC')
         .setDescription(
             `Esta es la comunidad de Discord para convivir entre cimarrones. Empieza por <#${RULES_CHANNEL_ID}> y respeta las [normas de Discord](https://discord.com/guidelines).\n\n` +
-            `**Boosters** · Con <@&${BOOSTER_ROLE_ID}> ganas **x${BOOSTER_XP_MULTIPLIER} XP** por mensaje válido y por cada premio de 10 números en counting. El rol Booster permanece aunque subas de rango.\n\n` +
+            `**XP extra** · Con el tag ${emoji('uabc_tag') || 'UABC'} visible ganas **x${UABC_TAG_XP_MULTIPLIER} XP**; con <@&${BOOSTER_ROLE_ID}> ganas **x${BOOSTER_XP_MULTIPLIER} XP**. Ambos aplican a mensajes válidos y a cada premio de 10 números en counting. **No se acumulan:** si tienes los dos, se aplica x${BOOSTER_XP_MULTIPLIER}.\n\n` +
             `**Dónde ir**\n` +
             `• <#${GENERAL_CHANNEL_ID}> · plática y conoce a la comunidad.\n` +
             `• ${counting} · cuenta en orden sin repetir turno; un error reinicia la cuenta.\n` +
@@ -53,8 +62,8 @@ function buildInfoEmbeds(guild) {
         .setTitle('Rangos y niveles')
         .setDescription(
             `<@&${UNVERIFIED_ROLE_ID}> limita el acceso hasta confirmar tu correo. Al verificarte recibes <@&${RANKS[0].id}>. Después, Cima cambia automáticamente tu rango al subir de nivel:\n\n` +
-            [...RANKS].reverse().map(rank => `• <@&${rank.id}>${RANK_COLORS[rank.name] ? ` (**${RANK_COLORS[rank.name]}**)` : ''} · nivel **${rank.level}**`).join('\n') +
-            `\n\nCada mensaje válido fuera de counting da **20 XP**, como máximo una vez por minuto. Cada **10 números válidos** en counting dan otros **20 XP**. Con <@&${BOOSTER_ROLE_ID}> ganas **x${BOOSTER_XP_MULTIPLIER} XP** en ambos casos. Usa \`/nivel\` para ver tu progreso.`
+            [...RANKS].reverse().map(rank => `• ${rankEmoji[rank.name] ? `${rankEmoji[rank.name]} ` : ''}<@&${rank.id}>${RANK_COLORS[rank.name] ? ` (**${RANK_COLORS[rank.name]}**)` : ''} · nivel **${rank.level}**`).join('\n') +
+            `\n\nCada mensaje válido fuera de counting da **20 XP**, como máximo una vez por minuto. Cada **10 números válidos** en counting dan otros **20 XP**. El tag ${emoji('uabc_tag') || 'UABC'} da **x${UABC_TAG_XP_MULTIPLIER} XP** y <@&${BOOSTER_ROLE_ID}> da **x${BOOSTER_XP_MULTIPLIER} XP**. **No se suman:** si tienes ambos, recibes x${BOOSTER_XP_MULTIPLIER}. Usa \`/nivel\` para ver tu progreso.`
         );
 
     return [welcomeEmbed, commandsEmbed, ranksEmbed];
@@ -103,6 +112,7 @@ module.exports = {
 
         const type = interaction.options.getString('tipo', true);
         await interaction.deferReply({ ephemeral: true });
+        if (type === 'info') await interaction.guild.emojis.fetch();
         const selected = type === 'verificacion' ? [buildVerificationEmbed()] : buildInfoEmbeds(interaction.guild);
         await interaction.channel.send({ embeds: selected, allowedMentions: { parse: [] } });
         await interaction.editReply({ embeds: [embeds.success(`Guía de ${type === 'info' ? 'información' : 'verificación'} publicada en ${interaction.channel}.`)] });
