@@ -8,8 +8,8 @@ Add-Type -AssemblyName System.Drawing
 $assets = Join-Path $ProjectRoot 'assets'
 $source = Join-Path $assets 'nexo-uabc-banner-verde.png'
 $mark = Join-Path $assets 'uabc-mark-white.png'
-$svg = Join-Path $assets 'nexo-uabc-banner-phantom.svg'
-$png = Join-Path $assets 'nexo-uabc-banner-phantom.png'
+$svg = Join-Path $assets 'nexo-uabc-banner-esports.svg'
+$png = Join-Path $assets 'nexo-uabc-banner-esports.png'
 
 if (-not (Test-Path -LiteralPath $source)) { throw "Missing source isotipo: $source" }
 
@@ -74,13 +74,13 @@ $svgContent = @'
 <svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
   <style>
     @font-face {
-      font-family: "Poppins Local";
-      src: url("fonts/Poppins-Medium.ttf") format("truetype");
-      font-weight: 500;
+      font-family: "Russo One Local";
+      src: url("fonts/RussoOne-Regular.ttf") format("truetype");
+      font-weight: 400;
     }
   </style>
   <rect width="1920" height="1080" fill="#17382d"/>
-  <text x="300" y="625" fill="#fbfaf7" font-family="Poppins Local, Poppins, sans-serif" font-size="232" font-weight="500" letter-spacing="-8">Nexo</text>
+  <text x="265" y="625" fill="#fbfaf7" font-family="Russo One Local, sans-serif" font-size="238" font-weight="400" letter-spacing="-5">Nexo</text>
   <image href="uabc-mark-white.png" x="927" y="357" width="770" height="376"/>
 </svg>
 '@
