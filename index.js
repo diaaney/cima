@@ -17,6 +17,7 @@ client.prefixCommands = new Collection();
 
 require('./src/core/CommandHandler')(client);
 require('./src/events/ready.js')(client);
+require('./src/events/countingIdle.js')(client);
 require('./src/events/interactionCreate.js')(client);
 require('./src/events/messageCreate.js')(client);
 require('./src/events/leveling.js')(client);

@@ -68,6 +68,10 @@ function getProfile(guildId, userId, member = null) {
     };
 }
 
+function getAllLevelProfiles(guildId) {
+    return readStore(guildId);
+}
+
 function awardMessage(guildId, userId, member, now = Date.now()) {
     const data = readStore(guildId);
     const current = data[userId] || {
@@ -133,6 +137,7 @@ module.exports = {
     rankForLevel,
     highestMemberRank,
     getProfile,
+    getAllLevelProfiles,
     awardMessage,
     awardCountingNumber,
     synchronizeRank,

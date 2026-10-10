@@ -1,54 +1,26 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const embeds = require('../../../constants/embeds');
-const { getAllUserStats } = require('../../../utils/storage');
-
-function formatNumber(n) {
-    return n.toLocaleString('es-MX');
-}
+const { SlashCommandBuilder } = require('discord.js');
+const { buildLeaderboard } = require('../../../utils/leaderboards');
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('top')
-        .setDescription('Clasificación del juego de contar: los 10 primeros'),
+        .setDescription('Muestra los 10 primeros de niveles o counting')
+        .addStringOption(option => option
+            .setName('tipo')
+            .setDescription('Clasificación que quieres ver')
+            .setRequired(true)
+            .addChoices(
+                { name: 'Chat y niveles', value: 'chat' },
+                { name: 'Counting', value: 'counting' },
+            )),
 
     async execute(interaction) {
         await interaction.deferReply();
 
-        const allStats = getAllUserStats();
-        const ranked = Object.entries(allStats)
-            .map(([id, s]) => ({ id, total: s.total_count || 0, counted: s.numbers_counted || 0 }))
-            .filter(e => e.total > 0)
-            .sort((a, b) => b.total - a.total);
-
-        if (ranked.length === 0) {
-            const embed = new EmbedBuilder()
-                .setColor(embeds.NEUTRAL_COLOR)
-                .setDescription('Todavía nadie ha contado. ¡Sé la primera persona!');
-            return interaction.editReply({ embeds: [embed] });
-        }
-
-        const top = ranked.slice(0, 10);
-
-        const medals = ['🥇', '🥈', '🥉'];
-        const lines = await Promise.all(top.map(async (entry, idx) => {
-            const prefix = idx < 3 ? medals[idx] : `**${idx + 1}.**`;
-            const user = await interaction.client.users.fetch(entry.id).catch(() => null);
-            const name = user ? user.username : `usuario-${entry.id.slice(-4)}`;
-            return `${prefix} ${name} — **${formatNumber(entry.total)}** puntos (${formatNumber(entry.counted)} números)`;
-        }));
-
-        let footer = '';
-        const myIndex = ranked.findIndex(e => e.id === interaction.user.id);
-        if (myIndex >= 10) {
-            const me = ranked[myIndex];
-            footer = `\n\nTu puesto: **#${myIndex + 1}** — ${formatNumber(me.total)} puntos`;
-        }
-
-        const embed = new EmbedBuilder()
-            .setColor(embeds.NEUTRAL_COLOR)
-            .setTitle('🏆 Clasificación del juego de contar')
-            .setDescription(lines.join('\n') + footer);
-
-        await interaction.editReply({ embeds: [embed] });
+        const type = interaction.options.getString('tipo', true);
+        await interaction.editReply({
+            embeds: [buildLeaderboard(type, interaction.guildId, interaction.user.id)],
+            allowedMentions: { parse: [] },
+        });
     }
 };

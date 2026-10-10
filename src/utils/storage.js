@@ -21,6 +21,8 @@ function defaultGuildConfig() {
             channel_id: null,
             current_number: 0,
             last_user_id: null,
+            last_count_at: null,
+            idle_announced_for: null,
             active_booster: null,
             active_drop: null,
         },
@@ -147,6 +149,11 @@ function ensureGuild(config, guildId) {
     // Backfill nested fields added over time
     if (!('active_booster' in g.counting)) { g.counting.active_booster = null; changed = true; }
     if (!('active_drop' in g.counting)) { g.counting.active_drop = null; changed = true; }
+    if (!('last_count_at' in g.counting)) {
+        g.counting.last_count_at = g.counting.current_number > 0 ? Date.now() : null;
+        changed = true;
+    }
+    if (!('idle_announced_for' in g.counting)) { g.counting.idle_announced_for = null; changed = true; }
     if (!Array.isArray(g.welcome.featured_channels)) { g.welcome.featured_channels = []; changed = true; }
     if (!('image_url' in g.welcome)) { g.welcome.image_url = null; changed = true; }
 
@@ -242,6 +249,8 @@ function setCountingChannel(guildId, channel_id) {
         channel_id,
         current_number: 0,
         last_user_id: null,
+        last_count_at: null,
+        idle_announced_for: null,
         active_booster: null,
         active_drop: null,
     };
@@ -253,7 +262,20 @@ function updateCount(guildId, new_number, user_id) {
     const { guild } = ensureGuild(config, guildId);
     guild.counting.current_number = new_number;
     guild.counting.last_user_id = user_id;
+    guild.counting.last_count_at = Date.now();
+    guild.counting.idle_announced_for = null;
     writeConfig(config);
+}
+
+function markCountingIdleAnnounced(guildId, lastCountAt) {
+    const config = readConfig();
+    const { guild } = ensureGuild(config, guildId);
+    const counting = guild.counting;
+    if (!counting.channel_id || counting.current_number <= 0 ||
+        counting.last_count_at !== lastCountAt || counting.idle_announced_for === lastCountAt) return false;
+    counting.idle_announced_for = lastCountAt;
+    writeConfig(config);
+    return true;
 }
 
 function resetCount(guildId) {
@@ -261,6 +283,8 @@ function resetCount(guildId) {
     const { guild } = ensureGuild(config, guildId);
     guild.counting.current_number = 0;
     guild.counting.last_user_id = null;
+    guild.counting.last_count_at = null;
+    guild.counting.idle_announced_for = null;
     guild.counting.active_booster = null;
     writeConfig(config);
 }
@@ -290,6 +314,8 @@ function applyBoostToCount(guildId, newCount) {
     const config = readConfig();
     const { guild } = ensureGuild(config, guildId);
     guild.counting.current_number = newCount;
+    guild.counting.last_count_at = Date.now();
+    guild.counting.idle_announced_for = null;
     guild.counting.active_booster = null;
     writeConfig(config);
 }
@@ -633,6 +659,7 @@ module.exports = {
     getCountingConfig,
     setCountingChannel,
     updateCount,
+    markCountingIdleAnnounced,
     resetCount,
     getActiveBooster,
     setActiveBooster,
