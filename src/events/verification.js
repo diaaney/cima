@@ -50,9 +50,9 @@ function button(id, label) {
 function welcomeEmbed(guildName) {
     return new EmbedBuilder()
         .setColor(embeds.NEUTRAL_COLOR)
-        .setTitle(`bienvenid@ a ${guildName} ♡`)
+        .setTitle(`Bienvenido a ${guildName}`)
         .setDescription(
-            'Debido a que entraron varias cuentas alternativas a causar desorden, pedimos verificar el correo institucional para cuidar Comunidad UABC.\n\n' +
+            'Debido a que entraron varias cuentas alternativas a causar desorden, pedimos verificar el correo institucional para cuidar Nexo UABC.\n\n' +
             'Pulsa **Verificar mi correo**, escribe tu dirección **@uabc.edu.mx** y recibirás un código de seis dígitos válido durante **10 minutos**. Revisa también spam. Después pulsa **Ingresar código**: recibirás **Aspirante** y se quitará **Sin Verificar**.\n\n' +
             '**Privacidad:** nunca te pedimos contraseñas ni datos académicos. Guardamos el código como hash; después conservamos el correo vinculado a tu ID de Discord y la fecha de verificación para evitar cuentas duplicadas.'
         )
@@ -78,7 +78,7 @@ async function sendCode(email, code) {
         from: process.env.RESEND_FROM_EMAIL,
         to: [email],
         subject: 'Cima | código de verificación UABC',
-        text: `Tu código de verificación para Comunidad UABC es: ${code}\n\nCaduca en 10 minutos. Si no lo solicitaste, ignora este correo.`,
+        text: `Tu código de verificación para Nexo UABC es: ${code}\n\nCaduca en 10 minutos. Si no lo solicitaste, ignora este correo.`,
     });
     if (error) throw new Error(`Resend: ${error.message}`);
 }
@@ -99,7 +99,7 @@ async function handle(interaction) {
     }
     const member = await targetMember(interaction.client, interaction.user.id);
     if (!member) {
-        await interaction.reply({ embeds: [embeds.error('Necesitas estar en Comunidad UABC para verificarte.')], ephemeral: true });
+        await interaction.reply({ embeds: [embeds.error('Necesitas estar en Nexo UABC para verificarte.')], ephemeral: true });
         return true;
     }
     const { domain } = settings();
@@ -110,7 +110,7 @@ async function handle(interaction) {
             await interaction.reply({ embeds: [embeds.error('Tu correo ya está verificado, pero no pude actualizar tus roles. Usa /verificar otra vez o avisa al equipo del servidor.')], ephemeral: true });
             return true;
         }
-        await interaction.reply({ embeds: [embeds.success('Tu correo ya está verificado ♡')], ephemeral: true });
+        await interaction.reply({ embeds: [embeds.success('Tu correo ya está verificado.')], ephemeral: true });
         return true;
     }
 
@@ -192,7 +192,7 @@ async function handle(interaction) {
             await interaction.editReply({ embeds: [embeds.error('Tu correo ya está verificado, pero no pude actualizar tus roles. Usa /verificar otra vez o avisa al equipo del servidor.')] });
             return true;
         }
-        await interaction.editReply({ embeds: [embeds.success('¡Correo verificado! Ya puedes acceder a Comunidad UABC ♡')] });
+        await interaction.editReply({ embeds: [embeds.success('¡Correo verificado! Ya puedes acceder a Nexo UABC.')] });
         return true;
     }
     return true;

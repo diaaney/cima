@@ -15,7 +15,7 @@ function buildWelcomeDescription(guild) {
         ? configured
         : (guild.id === UABC_GUILD_ID ? UABC_FEATURED_CHANNELS : []);
 
-    let description = 'bienvenido a Nexo UABC ⸜(｡˃ ᵕ ˂ )⸝♡';
+    let description = 'Bienvenido a Nexo UABC ⸜(｡˃ ᵕ ˂ )⸝';
 
     if (guild.id === UABC_GUILD_ID) {
         description += '\n\nRevisa tus MD de **Cima** para verificar tu correo institucional. Si no te llegó el mensaje, usa `/verificar`. Al verificarte recibirás **Aspirante** y podrás empezar a subir de nivel con `/nivel`.';

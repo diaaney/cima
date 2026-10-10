@@ -16,7 +16,7 @@ function buildGuideEmbeds(guild) {
 
     const welcomeEmbed = new EmbedBuilder()
         .setColor(embeds.NEUTRAL_COLOR)
-        .setTitle('✦ Bienvenid@ a Nexo UABC')
+        .setTitle('✦ Bienvenido a Nexo UABC')
         .setDescription(
             `Esta es la comunidad de Discord para convivir entre cimarrones. Empieza por <#${RULES_CHANNEL_ID}> y respeta las [normas de Discord](https://discord.com/guidelines).\n\n` +
             `Si acabas de entrar, revisa el MD de **Cima** para verificar tu correo institucional. También puedes usar \`/verificar\`. Al completar el proceso se quita **Sin Verificar** y recibes **Aspirante**.\n\n` +

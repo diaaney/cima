@@ -8,12 +8,12 @@ module.exports = {
         .setDescription('Recibe por MD los pasos para verificar tu correo UABC'),
     async execute(interaction) {
         if (interaction.guildId !== process.env.GUILD_ID?.trim()) {
-            return interaction.reply({ embeds: [embeds.error('Este comando solo funciona en Comunidad UABC.')], ephemeral: true });
+            return interaction.reply({ embeds: [embeds.error('Este comando solo funciona en Nexo UABC.')], ephemeral: true });
         }
         await interaction.deferReply({ ephemeral: true });
         try {
             await sendPrompt(interaction.user, interaction.guild.name);
-            return interaction.editReply({ embeds: [embeds.success('Te envié las instrucciones por MD ♡')] });
+            return interaction.editReply({ embeds: [embeds.success('Te envié las instrucciones por MD.')] });
         } catch (error) {
             console.warn(`[Verification] Could not DM ${interaction.user.id}: ${error.code || 'unknown'} ${error.message}`);
             const message = error.code === 50007
