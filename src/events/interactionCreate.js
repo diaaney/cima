@@ -165,7 +165,7 @@ fs.readdirSync(buttonsPath).forEach(file => {
 });
 
 module.exports = (client) => {
-    client.on('interactionCreate', async interaction => {
+    async function handleInteraction(interaction) {
         // Slash command
         if (interaction.isCommand()) {
             const command = client.commands.get(interaction.commandName);
@@ -206,6 +206,7 @@ module.exports = (client) => {
 
                 // Perfect aim: instant win, no modal
                 if (stats.primed?.perfect_aim && (stats.items?.perfect_aim || 0) > 0) {
+                    await interaction.deferReply({ ephemeral: true });
                     unprimeItem(interaction.user.id, 'perfect_aim');
                     removeItem(interaction.user.id, 'perfect_aim', 1);
 
@@ -241,9 +242,8 @@ module.exports = (client) => {
                         }).catch(() => {});
                     }
 
-                    return interaction.reply({
+                    return interaction.editReply({
                         content: `🎯 perfect aim consumed — booster auto-won, count now **${toCount}**`,
-                        ephemeral: true,
                     });
                 }
 
@@ -444,6 +444,8 @@ module.exports = (client) => {
                     });
                 }
 
+                await interaction.deferReply({ ephemeral: true });
+
                 const raw = (interaction.fields.getTextInputValue('booster_answer_input') || '').trim();
                 const guess = parseInt(raw, 10);
                 const isNumber = !isNaN(guess) && raw === guess.toString();
@@ -482,9 +484,8 @@ module.exports = (client) => {
                         }).catch(() => {});
                     }
 
-                    return interaction.reply({
+                    return interaction.editReply({
                         content: `you got it — count is now **${toCount}**`,
-                        ephemeral: true,
                     });
                 } else {
                     clearActiveBooster(guildId);
@@ -507,9 +508,8 @@ module.exports = (client) => {
                         }).catch(() => {});
                     }
 
-                    return interaction.reply({
+                    return interaction.editReply({
                         content: `nope. it was **${active.answer}**`,
-                        ephemeral: true,
                     });
                 }
             }
@@ -525,6 +525,8 @@ module.exports = (client) => {
                         ephemeral: true,
                     });
                 }
+
+                await interaction.deferReply({ ephemeral: true });
 
                 const raw = (interaction.fields.getTextInputValue('drop_answer_input') || '').trim();
                 const guess = parseInt(raw, 10);
@@ -561,9 +563,8 @@ module.exports = (client) => {
                         }).catch(() => {});
                     }
 
-                    return interaction.reply({
+                    return interaction.editReply({
                         content: `🎁 you got a ${active.emoji} **${active.label}**`,
-                        ephemeral: true,
                     });
                 } else {
                     clearActiveDrop(guildId);
@@ -588,9 +589,8 @@ module.exports = (client) => {
                         }).catch(() => {});
                     }
 
-                    return interaction.reply({
+                    return interaction.editReply({
                         content: `nope. it was **${active.answer}**`,
-                        ephemeral: true,
                     });
                 }
             }
@@ -707,5 +707,17 @@ module.exports = (client) => {
                 });
             }
         }
+    }
+
+    client.on('interactionCreate', interaction => {
+        void handleInteraction(interaction).catch(async error => {
+            console.error('[Interaction] Unexpected error:', error?.message || error);
+            const response = { embeds: [embeds.error('Ocurrió un error al procesar la interacción.')] };
+            if (interaction.deferred) {
+                await interaction.editReply(response).catch(() => {});
+            } else if (!interaction.replied) {
+                await interaction.reply({ ...response, ephemeral: true }).catch(() => {});
+            }
+        });
     });
 };
