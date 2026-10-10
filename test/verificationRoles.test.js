@@ -8,7 +8,6 @@ const { Events } = require('discord.js');
 const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'cima-verification-roles-'));
 process.env.VERIFICATION_STORE_FILE = path.join(directory, 'verification.json');
 process.env.GUILD_ID = 'guild-uabc';
-process.env.VERIFIED_ROLE_ID = 'verified';
 process.env.UNVERIFIED_ROLE_ID = 'unverified';
 process.env.RESEND_API_KEY = 'test-key';
 process.env.RESEND_FROM_EMAIL = 'Cima <test@example.com>';
@@ -53,7 +52,7 @@ test('new members receive the unverified role before the DM', async () => {
     assert.deepEqual([...member.roleIds], ['unverified']);
 });
 
-test('confirming the email grants verified and removes unverified', async () => {
+test('confirming the email removes unverified without adding a role', async () => {
     const member = makeMember('student', ['unverified']);
     const { handlers, client } = setup(member);
     assert.equal(store.begin('student', 'student@uabc.edu.mx', '123456'), null);
@@ -71,20 +70,20 @@ test('confirming the email grants verified and removes unverified', async () => 
 
     await handlers[Events.InteractionCreate](interaction);
 
-    assert.deepEqual(member.calls, ['add:verified', 'remove:unverified']);
-    assert.deepEqual([...member.roleIds], ['verified']);
+    assert.deepEqual(member.calls, ['remove:unverified']);
+    assert.deepEqual([...member.roleIds], []);
     assert.equal(store.read().verified.student.email, 'student@uabc.edu.mx');
     assert.match(replies[0].embeds[0].data.description, /Correo verificado/);
 });
 
-test('a returning verified member receives only the verified role', async () => {
+test('a returning verified member does not receive the unverified role', async () => {
     const member = makeMember('student', ['unverified']);
     const { handlers } = setup(member);
 
     await handlers[Events.GuildMemberAdd](member);
 
-    assert.deepEqual(member.calls, ['add:verified', 'remove:unverified']);
-    assert.deepEqual([...member.roleIds], ['verified']);
+    assert.deepEqual(member.calls, ['remove:unverified']);
+    assert.deepEqual([...member.roleIds], []);
 });
 
 test.after(() => fs.rmSync(directory, { recursive: true, force: true }));
