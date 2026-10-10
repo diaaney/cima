@@ -253,6 +253,12 @@ module.exports = (client) => {
         const command = client.prefixCommands.get(cmd);
         if (!command) return;
 
+        if (command.permissions?.length &&
+            !command.permissions.every(permission => message.member?.permissions.has(permission))) {
+            await message.reply('❌ No tienes permisos para usar este comando.').catch(() => {});
+            return;
+        }
+
         try {
             await command.execute(message, args);
         } catch (error) {

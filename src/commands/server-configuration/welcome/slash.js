@@ -7,6 +7,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('welcome')
         .setDescription('configure welcome messages for new members')
+        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
         .addSubcommand(subcommand =>
             subcommand
                 .setName('setup')
@@ -52,15 +53,14 @@ module.exports = {
     async execute(interaction) {
         const subcommand = interaction.options.getSubcommand();
 
-        if (subcommand === 'setup') {
-            // Check for admin permissions
-            if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
-                return interaction.reply({
-                    embeds: [embeds.error('nah, you need administrator permissions to use this command')],
-                    ephemeral: true
-                });
-            }
+        if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
+            return interaction.reply({
+                embeds: [embeds.error('Necesitas permisos de administrador para usar este comando.')],
+                ephemeral: true
+            });
+        }
 
+        if (subcommand === 'setup') {
             const channel = interaction.options.getChannel('channel');
 
             // Optional channels to feature inside the welcome message
