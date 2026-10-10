@@ -1,15 +1,15 @@
 const { ActivityType } = require('discord.js');
 
-// Rotating presences — keeps the original plus some snarky ones
+// Rotating school-themed presences
 const STATUSES = [
-    { name: 'always listening to you ♡', type: ActivityType.Playing },
-    { name: 'happy e-dating! ♡', type: ActivityType.Playing },
-    { name: 'your situationship fall apart', type: ActivityType.Watching },
-    { name: 'you lose the count', type: ActivityType.Watching },
-    { name: 'touch grass challenge', type: ActivityType.Competing },
-    { name: 'parasocial relationships', type: ActivityType.Listening },
-    { name: 'you type and delete that message', type: ActivityType.Watching },
-    { name: 'go outside maybe? ♡', type: ActivityType.Playing },
+    { name: 'Expulsando a SAFIM', type: ActivityType.Competing },
+    { name: 'Verificando Usuarios...', type: ActivityType.Watching },
+    { name: 'Salvando Inglés II', type: ActivityType.Playing },
+    { name: 'Sobreviviendo a parciales', type: ActivityType.Competing },
+    { name: 'Buscando el salón', type: ActivityType.Watching },
+    { name: 'Haciendo la tarea a las 11:59', type: ActivityType.Playing },
+    { name: 'Esperando al profe', type: ActivityType.Watching },
+    { name: 'Evitando extraordinarios', type: ActivityType.Competing },
 ];
 
 const ROTATE_EVERY_MS = 30_000; // switch status every 30s
