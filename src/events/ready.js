@@ -3,7 +3,7 @@ const { ActivityType } = require('discord.js');
 // Rotating school-themed presences
 const STATUSES = [
     { name: 'Expulsando a SAFIM', type: ActivityType.Competing },
-    { name: 'Verificando Usuarios...', type: ActivityType.Watching },
+    { name: 'Verificando usuarios...', type: ActivityType.Watching },
     { name: 'Salvando Inglés II', type: ActivityType.Playing },
     { name: 'Sobreviviendo a parciales', type: ActivityType.Competing },
     { name: 'Buscando el salón', type: ActivityType.Watching },
