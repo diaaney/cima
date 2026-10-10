@@ -19,7 +19,11 @@ function buildInfoEmbeds(guild) {
         const found = guild.emojis?.cache.find(item => item.name === name);
         return found ? `<:${found.name}:${found.id}>` : '';
     };
-    const uabcTag = emoji('uabc_tag') || '**UABC**';
+    const tagPart1 = emoji('uabc_tag_part1');
+    const tagPart2 = emoji('uabc_tag_part2');
+    const uabcTag = tagPart1 && tagPart2
+        ? `${tagPart1}${tagPart2}`
+        : emoji('uabc_tag') || '**UABC**';
     const rankEmoji = {
         'Leyenda Cimarrona': emoji('rank_lightning'),
         'Cimarrón Avanzado': emoji('rank_holo'),
