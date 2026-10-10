@@ -5,6 +5,7 @@ const {
     TextInputStyle,
     ActionRowBuilder,
     Routes,
+    MessageFlags,
 } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
@@ -180,9 +181,10 @@ module.exports = (client) => {
             } catch (err) {
                 console.error('[Commands] Error al ejecutar el comando:', err?.message || err);
                 if (err?.code === 10062) return;
+                if (!interaction.deferred && !interaction.replied && Date.now() - interaction.createdTimestamp > 2500) return;
                 const errorReply = {
                     embeds: [embeds.error('Error executing command.')],
-                    ephemeral: true
+                    flags: MessageFlags.Ephemeral
                 };
                 if (interaction.deferred || interaction.replied) {
                     await interaction.followUp(errorReply).catch(error => console.error('[Commands] No pude informar el error:', error?.message || error));

@@ -44,9 +44,22 @@ module.exports = {
                 .setRequired(true))),
 
     async execute(interaction) {
-        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        try {
+            await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        } catch (error) {
+            console.error('[Role] Falló la respuesta inicial a Discord:', error?.message || error);
+            throw error;
+        }
 
         const mode = interaction.options.getSubcommand();
+        const editReply = async payload => {
+            try {
+                return await interaction.editReply(payload);
+            } catch (error) {
+                console.error(`[Role ${mode}] Falló la respuesta final a Discord:`, error?.message || error);
+                throw error;
+            }
+        };
         const { guild } = interaction;
         const botMember = guild.members.me ?? await guild.members.fetchMe();
         const sourceRole = interaction.options.getRole(mode === 'convert' ? 'roltarget' : 'role');
@@ -54,29 +67,36 @@ module.exports = {
 
         for (const role of [sourceRole, newRole].filter(Boolean)) {
             const error = roleError(role, guild, botMember);
-            if (error) return interaction.editReply({ embeds: [embeds.error(error)] });
+            if (error) return editReply({ embeds: [embeds.error(error)] });
         }
 
         if (mode === 'convert') {
             if (sourceRole.id === newRole.id) {
-                return interaction.editReply({ embeds: [embeds.info('El rol actual y el nuevo son el mismo.')] });
+                return editReply({ embeds: [embeds.info('El rol actual y el nuevo son el mismo.')] });
             }
 
             if (interaction.user.id !== guild.ownerId) {
                 const member = interaction.member;
                 for (const role of [sourceRole, newRole]) {
                     if (member.roles.highest.comparePositionTo(role) <= 0) {
-                        return interaction.editReply({
+                        return editReply({
                             embeds: [embeds.error(`Tu rol más alto debe estar por encima de ${role}.`)],
                         });
                     }
                 }
             }
 
-            const members = await guild.members.fetch();
+            let members;
+            try {
+                members = await guild.members.fetch();
+            } catch (error) {
+                console.error('[Role convert] Falló la consulta de miembros:', error?.message || error);
+                throw error;
+            }
             const targets = members.filter(member => !member.user.bot && member.roles.cache.has(sourceRole.id));
+            console.log(`[Role convert] Encontré ${targets.size} miembros para convertir.`);
             if (targets.size === 0) {
-                return interaction.editReply({
+                return editReply({
                     embeds: [embeds.info(`Ninguna persona tiene ${sourceRole}. No hubo cambios.`)],
                 });
             }
@@ -106,14 +126,14 @@ module.exports = {
             const details = failed
                 ? `\nFallaron **${failed}**. ${partial ? `De ellos, **${partial}** recibieron el rol nuevo pero conservaron el anterior.` : ''}`
                 : '';
-            return interaction.editReply({
+            return editReply({
                 embeds: [embeds.success(`Convertí ${sourceRole} → ${newRole} para **${converted}** de **${targets.size}** personas.${details}`)],
             });
         }
 
         if (mode === 'join') {
             setAutoroleConfig(guild.id, sourceRole.id);
-            return interaction.editReply({
+            return editReply({
                 embeds: [embeds.success(`Los nuevos miembros recibirán ${sourceRole} automáticamente.`)],
             });
         }
@@ -126,7 +146,7 @@ module.exports = {
             : nonBots.filter(member => member.roles.cache.has(sourceRole.id));
 
         if (targets.size === 0) {
-            return interaction.editReply({
+            return editReply({
                 embeds: [embeds.info(isAdd
                     ? `Todos ya tienen ${sourceRole}. No hubo cambios.`
                     : `Nadie tiene ${sourceRole}. No hubo cambios.`)],
@@ -150,7 +170,7 @@ module.exports = {
 
         const action = isAdd ? 'Di' : 'Quité';
         const details = failed ? `\nNo pude actualizar a **${failed}** miembros.` : '';
-        return interaction.editReply({
+        return editReply({
             embeds: [embeds.success(`${action} ${sourceRole} a **${success}** miembros.${details}`)],
         });
     },
