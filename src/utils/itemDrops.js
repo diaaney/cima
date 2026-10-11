@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const DROP_PITY_COUNTS = 8;
 
 const ITEM_DEFS = [
     { type: 'streak_shield', emoji: '🛡', label: 'escudo de racha', weight: 4 },
@@ -32,6 +33,7 @@ function generateDrop(operation) {
 }
 
 module.exports = {
+    DROP_PITY_COUNTS,
     ITEM_DEFS,
     ITEM_DEFS_BY_TYPE,
     generateDrop,

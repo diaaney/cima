@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { atomicWrite, readJsonWithBackup, writeJsonWithBackup } = require('./jsonStore');
+const { DROP_PITY_COUNTS } = require('./itemDrops');
 
 const DATA_DIR = path.join(__dirname, '../../data');
 const CONFIG_FILE = path.join(DATA_DIR, 'config.json');
@@ -26,6 +27,7 @@ function defaultGuildConfig() {
             idle_announced_for: null,
             active_booster: null,
             active_drop: null,
+            counts_since_drop: 0,
         },
         welcome: { channel_id: null, featured_channels: [], image_url: null },
         autorole: { role_id: null },
@@ -146,6 +148,12 @@ function ensureGuild(config, guildId) {
     // Backfill nested fields added over time
     if (!('active_booster' in g.counting)) { g.counting.active_booster = null; changed = true; }
     if (!('active_drop' in g.counting)) { g.counting.active_drop = null; changed = true; }
+    if (!Number.isInteger(g.counting.counts_since_drop) || g.counting.counts_since_drop < 0) {
+        g.counting.counts_since_drop = g.counting.active_drop
+            ? 0
+            : Math.min(DROP_PITY_COUNTS - 1, Math.max(0, g.counting.current_number || 0));
+        changed = true;
+    }
     if (!('last_count_at' in g.counting)) {
         g.counting.last_count_at = g.counting.current_number > 0 ? Date.now() : null;
         changed = true;
@@ -250,6 +258,7 @@ function setCountingChannel(guildId, channel_id) {
         idle_announced_for: null,
         active_booster: null,
         active_drop: null,
+        counts_since_drop: 0,
     };
     writeConfig(config);
 }
@@ -261,6 +270,7 @@ function updateCount(guildId, new_number, user_id) {
     guild.counting.last_user_id = user_id;
     guild.counting.last_count_at = Date.now();
     guild.counting.idle_announced_for = null;
+    guild.counting.counts_since_drop += 1;
     writeConfig(config);
 }
 
@@ -283,20 +293,27 @@ function resetCount(guildId) {
     guild.counting.last_count_at = null;
     guild.counting.idle_announced_for = null;
     guild.counting.active_booster = null;
+    guild.counting.active_drop = null;
     writeConfig(config);
 }
 
 function getActiveBooster(guildId) {
     const config = readConfig();
     const { guild, changed } = ensureGuild(config, guildId);
+    const booster = guild.counting.active_booster;
+    if (booster && (!booster.created_at || Date.now() - booster.created_at >= 5 * 60_000)) {
+        guild.counting.active_booster = null;
+        writeConfig(config);
+        return null;
+    }
     if (changed) writeConfig(config);
-    return guild.counting.active_booster || null;
+    return booster || null;
 }
 
 function setActiveBooster(guildId, booster) {
     const config = readConfig();
     const { guild } = ensureGuild(config, guildId);
-    guild.counting.active_booster = booster;
+    guild.counting.active_booster = { ...booster, created_at: Date.now() };
     writeConfig(config);
 }
 
@@ -321,14 +338,21 @@ function applyBoostToCount(guildId, newCount) {
 function getActiveDrop(guildId) {
     const config = readConfig();
     const { guild, changed } = ensureGuild(config, guildId);
+    const drop = guild.counting.active_drop;
+    if (drop && (!drop.created_at || Date.now() - drop.created_at >= 5 * 60_000)) {
+        guild.counting.active_drop = null;
+        writeConfig(config);
+        return null;
+    }
     if (changed) writeConfig(config);
-    return guild.counting.active_drop || null;
+    return drop || null;
 }
 
 function setActiveDrop(guildId, drop) {
     const config = readConfig();
     const { guild } = ensureGuild(config, guildId);
-    guild.counting.active_drop = drop;
+    guild.counting.active_drop = { ...drop, created_at: Date.now() };
+    guild.counting.counts_since_drop = 0;
     writeConfig(config);
 }
 

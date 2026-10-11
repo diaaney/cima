@@ -20,7 +20,7 @@ const {
 } = require('../utils/storage');
 const embeds = require('../constants/embeds');
 const { generateBooster, generateOperation } = require('../utils/boosterOps');
-const { generateDrop, ITEM_DEFS_BY_TYPE } = require('../utils/itemDrops');
+const { generateDrop, ITEM_DEFS_BY_TYPE, DROP_PITY_COUNTS } = require('../utils/itemDrops');
 const { evaluateExpression, isPureInteger } = require('../utils/safeMath');
 const {
     awardCountingNumber,
@@ -123,6 +123,10 @@ async function spawnDrop(message, userNumber, guildId) {
 
 async function rollSpawn(message, userNumber, guildId) {
     if (getActiveBooster(guildId) || getActiveDrop(guildId)) return;
+    if (getCountingConfig(guildId).counts_since_drop >= DROP_PITY_COUNTS) {
+        await spawnDrop(message, userNumber, guildId);
+        return;
+    }
     const r = Math.random();
     if (r < BOOSTER_CHANCE) {
         await spawnBooster(message, userNumber, guildId);
