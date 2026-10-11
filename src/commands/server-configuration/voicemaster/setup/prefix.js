@@ -6,11 +6,8 @@ const {
     ButtonStyle,
     PermissionFlagsBits
 } = require('discord.js');
-const path = require('path');
 const { setVoicemasterConfig } = require('../../../../utils/storage');
 const { markup, id } = require('../../../../constants/appEmojis');
-
-const vmLogoPath = 'attachment://vm-logo.png';
 
 module.exports = {
     name: 'voicemaster',
@@ -61,8 +58,8 @@ module.exports = {
                 `${markup('decrease')} — **\`Decrease\`** · Baja el límite de usuarios.`
             )
             .setColor('#3c3b40')
-            .setThumbnail(vmLogoPath)
             .setFooter({ text: 'VoiceMaster by UABC' });
+        if (guild.iconURL()) panelEmbed.setThumbnail(guild.iconURL());
 
         const row1 = new ActionRowBuilder().addComponents(
             new ButtonBuilder().setCustomId('vm_lock').setEmoji(id('lock')).setStyle(ButtonStyle.Secondary),
@@ -83,7 +80,6 @@ module.exports = {
         await panelChannel.send({
             embeds: [panelEmbed],
             components: [row1, row2],
-            files: [path.join(__dirname, '..', 'assets', 'vm-logo.png')],
         });
 
         // Save config to JSON
