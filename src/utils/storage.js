@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { atomicWrite, readJsonWithBackup, writeJsonWithBackup } = require('./jsonStore');
 
 const DATA_DIR = path.join(__dirname, '../../data');
 const CONFIG_FILE = path.join(DATA_DIR, 'config.json');
@@ -46,11 +47,11 @@ function emptyConfig() {
 
 // Initialize files if they don't exist
 if (!fs.existsSync(CONFIG_FILE)) {
-    fs.writeFileSync(CONFIG_FILE, JSON.stringify(emptyConfig(), null, 2));
+    atomicWrite(CONFIG_FILE, JSON.stringify(emptyConfig(), null, 2));
 }
 
 if (!fs.existsSync(ROOMS_FILE)) {
-    fs.writeFileSync(ROOMS_FILE, JSON.stringify([], null, 2));
+    atomicWrite(ROOMS_FILE, JSON.stringify([], null, 2));
 }
 
 // ---------------------------------------------------------------------------
@@ -98,22 +99,20 @@ function migrateLegacy(legacy) {
 // Read / write helpers
 // ---------------------------------------------------------------------------
 function readConfig() {
-    const data = fs.readFileSync(CONFIG_FILE, 'utf8');
-    let config = JSON.parse(data);
+    let config = readJsonWithBackup(CONFIG_FILE, BACKUP_FILE);
 
     if (isLegacyShape(config)) {
         // Back up the legacy file before rewriting it
-        fs.writeFileSync(BACKUP_FILE, data);
+        atomicWrite(BACKUP_FILE, JSON.stringify(config, null, 2));
         config = migrateLegacy(config);
-        fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2));
+        atomicWrite(CONFIG_FILE, JSON.stringify(config, null, 2));
     }
 
     return config;
 }
 
 function writeConfig(config) {
-    fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2));
-    fs.writeFileSync(BACKUP_FILE, JSON.stringify(config, null, 2));
+    writeJsonWithBackup(CONFIG_FILE, BACKUP_FILE, config);
 }
 
 function readRooms() {
@@ -122,7 +121,7 @@ function readRooms() {
 }
 
 function writeRooms(rooms) {
-    fs.writeFileSync(ROOMS_FILE, JSON.stringify(rooms, null, 2));
+    atomicWrite(ROOMS_FILE, JSON.stringify(rooms, null, 2));
 }
 
 // ---------------------------------------------------------------------------
