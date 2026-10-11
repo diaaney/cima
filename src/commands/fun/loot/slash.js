@@ -48,7 +48,9 @@ module.exports = {
             `🔢 **${formatNumber(stats.numbers_counted)}** números aportados`,
             '',
             '**Inventario**',
-            inventoryLines.length > 0 ? inventoryLines.join('\n') : '_vacío_',
+            inventoryLines.length > 0
+                ? inventoryLines.join('\n')
+                : '_Aún no tienes objetos. Aparecen al azar al contar en el canal de counting; resuelve el reto del premio para reclamarlo. Los puntos y números no se canjean automáticamente._',
             statusBits.length > 0 ? '\n**Estado**\n' + statusBits.map(s => `• ${s}`).join('\n') : '',
         ].filter(Boolean).join('\n');
 

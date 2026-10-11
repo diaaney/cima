@@ -1,0 +1,50 @@
+name: Deploy Cima to Oracle
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: cima-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare SSH
+        env:
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          install -m 700 -d "$HOME/.ssh"
+          printf '%s\n' "$VPS_SSH_KEY" > "$HOME/.ssh/cima_deploy"
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/cima_deploy" "$HOME/.ssh/known_hosts"
+
+      - name: Upload release
+        env:
+          VPS_HOST: ${{ vars.VPS_HOST }}
+        run: |
+          set -euo pipefail
+          test -n "$VPS_HOST"
+          tar -czf /tmp/cima-release.tar.gz --exclude=.git --exclude=.github -C "$GITHUB_WORKSPACE" .
+          scp -i "$HOME/.ssh/cima_deploy" -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            /tmp/cima-release.tar.gz "ubuntu@$VPS_HOST:/home/ubuntu/cima-release.tar.gz"
+          scp -i "$HOME/.ssh/cima_deploy" -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            .github/scripts/deploy.sh "ubuntu@$VPS_HOST:/home/ubuntu/cima-deploy.sh"
+
+      - name: Activate release
+        env:
+          VPS_HOST: ${{ vars.VPS_HOST }}
+        run: |
+          set -euo pipefail
+          ssh -i "$HOME/.ssh/cima_deploy" -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            "ubuntu@$VPS_HOST" "bash /home/ubuntu/cima-deploy.sh '$GITHUB_SHA'"
