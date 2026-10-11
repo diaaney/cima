@@ -1,6 +1,17 @@
 # Dependencies
 node_modules/
 
+# Local-only design files and checks
+assets/
+scripts/
+test/
+
+# Local VM and one-time maintenance helpers
+setup.sh
+update.sh
+ecosystem.config.js
+migrate-emojis.js
+
 # Environment
 .env
 
