@@ -1,4 +1,4 @@
-name: Deploy Cima to Oracle
+﻿name: Deploy Cima to Oracle
 
 on:
   push:
@@ -39,7 +39,7 @@ jobs:
           scp -i "$HOME/.ssh/cima_deploy" -o BatchMode=yes -o StrictHostKeyChecking=yes \
             /tmp/cima-release.tar.gz "ubuntu@$VPS_HOST:/home/ubuntu/cima-release.tar.gz"
           scp -i "$HOME/.ssh/cima_deploy" -o BatchMode=yes -o StrictHostKeyChecking=yes \
-            .github/scripts/deploy.sh "ubuntu@$VPS_HOST:/home/ubuntu/cima-deploy.sh"
+            .github/deploy.sh "ubuntu@$VPS_HOST:/home/ubuntu/cima-deploy.sh"
 
       - name: Activate release
         env:
@@ -48,3 +48,4 @@ jobs:
           set -euo pipefail
           ssh -i "$HOME/.ssh/cima_deploy" -o BatchMode=yes -o StrictHostKeyChecking=yes \
             "ubuntu@$VPS_HOST" "bash /home/ubuntu/cima-deploy.sh '$GITHUB_SHA'"
+
