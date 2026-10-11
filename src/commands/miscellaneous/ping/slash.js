@@ -7,10 +7,13 @@ module.exports = {
         .setDescription("Check Cima's latency 🏓"),
 
     async execute(interaction) {
+        const receivedAt = Date.now();
+        const gatewayDelay = Math.max(0, receivedAt - interaction.createdTimestamp);
+
         // Defer reply to prevent interaction timeout
         await interaction.deferReply();
 
-        const latency = Date.now() - interaction.createdTimestamp;
+        const acknowledgementDelay = Date.now() - receivedAt;
         const wsPing = interaction.client.ws.ping;
 
         // Calculate uptime
@@ -20,7 +23,7 @@ module.exports = {
         const uptimeFormatted = `${hours}h ${minutes}m`;
 
         // Update to success state with terminal-style format
-        const message = `**PING CHECK**\n→ Respuesta inicial: ${latency}ms\n→ WebSocket: ${wsPing}ms\n→ Uptime: ${uptimeFormatted}`;
+        const message = `**PING CHECK**\n→ Llegada del comando: ${gatewayDelay}ms\n→ Confirmación de Discord: ${acknowledgementDelay}ms\n→ WebSocket: ${wsPing}ms\n→ Uptime: ${uptimeFormatted}`;
 
         await interaction.editReply({
             embeds: [embeds.success(message)]
