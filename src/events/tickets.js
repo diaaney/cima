@@ -3,10 +3,14 @@ const {
 } = require('discord.js');
 const { CATEGORY_ID, STAFF_ROLE_IDS, ADMIN_ROLE_ID, TYPES } = require('../constants/tickets');
 const store = require('../utils/ticketStore');
-const { typeMenu, welcomeEmbed, ticketButtons, closeConfirmation } = require('../utils/ticketViews');
+const {
+    typeMenu, welcomeEmbed, ticketButtons, closeConfirmation,
+    staffApplicationModal, staffApplicationContinue, staffApplicationEmbed,
+} = require('../utils/ticketViews');
 
 const openingUsers = new Set();
 const closingChannels = new Set();
+const staffDrafts = new Map();
 const ephemeral = MessageFlags.Ephemeral;
 
 function isAdmin(member) {
@@ -38,8 +42,7 @@ function initialOverwrites(guildId, ownerId, unverifiedRoleId) {
     ];
 }
 
-async function openTicket(interaction) {
-    const type = interaction.values[0];
+async function openTicket(interaction, type = interaction.values?.[0], answers = null) {
     if (!TYPES[type]) return interaction.reply({ content: 'Tipo de ticket inválido.', flags: ephemeral });
     if (interaction.guildId !== process.env.GUILD_ID?.trim()) {
         return interaction.reply({ content: 'Este panel solo funciona en Nexo UABC.', flags: ephemeral });
@@ -90,6 +93,12 @@ async function openTicket(interaction) {
                 components: ticketButtons(ticket),
                 allowedMentions: { users: [interaction.user.id], roles: STAFF_ROLE_IDS },
             });
+            if (type === 'staff') {
+                await channel.send({
+                    embeds: [staffApplicationEmbed(interaction.user.id, answers)],
+                    allowedMentions: { parse: [] },
+                });
+            }
         } catch (error) {
             await channel.delete('Could not publish ticket welcome message').catch(() => {});
             store.close(channel.id, 'system');
@@ -99,6 +108,36 @@ async function openTicket(interaction) {
     } finally {
         openingUsers.delete(interaction.user.id);
     }
+}
+
+function draftKey(interaction) {
+    return `${interaction.guildId}:${interaction.user.id}`;
+}
+
+function readAnswers(interaction, offset) {
+    return Array.from({ length: 3 }, (_, index) =>
+        interaction.fields.getTextInputValue(`answer-${offset + index}`).trim()
+    );
+}
+
+async function handleStaffForm(interaction) {
+    const key = draftKey(interaction);
+    if (interaction.customId === 'ticket:staff-form-1') {
+        staffDrafts.set(key, { answers: readAnswers(interaction, 0), createdAt: Date.now() });
+        return interaction.reply({
+            content: 'Recibí las primeras tres respuestas. Continúa con las últimas tres para abrir tu ticket.',
+            components: staffApplicationContinue(),
+            flags: ephemeral,
+        });
+    }
+    const draft = staffDrafts.get(key);
+    if (!draft || Date.now() - draft.createdAt > 30 * 60 * 1000) {
+        staffDrafts.delete(key);
+        return interaction.reply({ content: 'Tu formulario venció. Abre el panel para empezar de nuevo.', flags: ephemeral });
+    }
+    const answers = [...draft.answers, ...readAnswers(interaction, 3)];
+    await openTicket(interaction, 'staff', answers);
+    staffDrafts.delete(key);
 }
 
 async function claimTicket(interaction) {
@@ -220,7 +259,20 @@ module.exports = client => {
                 }
                 return interaction.reply({ content: '¿En qué podemos ayudarte?', components: typeMenu(), flags: ephemeral });
             }
-            if (interaction.customId === 'ticket:type' && interaction.isStringSelectMenu()) return openTicket(interaction);
+            if (interaction.customId === 'ticket:type' && interaction.isStringSelectMenu()) {
+                if (interaction.values[0] === 'staff') return interaction.showModal(staffApplicationModal(1));
+                return openTicket(interaction);
+            }
+            if (interaction.customId === 'ticket:staff-continue' && interaction.isButton()) {
+                const draft = staffDrafts.get(draftKey(interaction));
+                if (!draft || Date.now() - draft.createdAt > 30 * 60 * 1000) {
+                    return interaction.reply({ content: 'Tu formulario venció. Abre el panel para empezar de nuevo.', flags: ephemeral });
+                }
+                return interaction.showModal(staffApplicationModal(2));
+            }
+            if (['ticket:staff-form-1', 'ticket:staff-form-2'].includes(interaction.customId) && interaction.isModalSubmit()) {
+                return handleStaffForm(interaction);
+            }
             if (interaction.customId === 'ticket:claim' && interaction.isButton()) return claimTicket(interaction);
             if (interaction.customId === 'ticket:close-cancel' && interaction.isButton()) {
                 return interaction.update({ content: 'Cierre cancelado.', components: [] });

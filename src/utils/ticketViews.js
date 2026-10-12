@@ -1,6 +1,6 @@
 const {
     ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder,
-    StringSelectMenuBuilder,
+    StringSelectMenuBuilder, ModalBuilder, TextInputBuilder, TextInputStyle,
 } = require('discord.js');
 const embeds = require('../constants/embeds');
 const { TYPES } = require('../constants/tickets');
@@ -74,4 +74,57 @@ function closeConfirmation() {
     )];
 }
 
-module.exports = { panelEmbed, panelButtons, typeMenu, welcomeEmbed, ticketButtons, closeConfirmation };
+const STAFF_QUESTIONS = Object.freeze([
+    '¿Por qué quieres ser staff y qué aportarías al servidor?',
+    '¿Tienes experiencia moderando comunidades?',
+    '¿Qué harías si dos miembros comienzan a insultarse?',
+    '¿Cómo actuarías si un amigo o alguien del staff rompe las reglas?',
+    '¿Qué harías si no sabes cómo resolver una situación?',
+    '¿Tienes disponibilidad para atender reportes y colaborar con el equipo?',
+]);
+
+function staffApplicationModal(part) {
+    const modal = new ModalBuilder()
+        .setCustomId(`ticket:staff-form-${part}`)
+        .setTitle(`Postulación para Staff · ${part}/2`);
+    const offset = (part - 1) * 3;
+    for (let index = offset; index < offset + 3; index++) {
+        modal.addComponents(new ActionRowBuilder().addComponents(
+            new TextInputBuilder()
+                .setCustomId(`answer-${index}`)
+                .setLabel(`${index + 1}. ${STAFF_QUESTIONS[index]}`.slice(0, 45))
+                .setPlaceholder(STAFF_QUESTIONS[index])
+                .setStyle(TextInputStyle.Paragraph)
+                .setMinLength(2)
+                .setMaxLength(500)
+                .setRequired(true)
+        ));
+    }
+    return modal;
+}
+
+function staffApplicationContinue() {
+    return [new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('ticket:staff-continue')
+            .setLabel('Continuar postulación (4–6)')
+            .setStyle(ButtonStyle.Primary)
+    )];
+}
+
+function staffApplicationEmbed(ownerId, answers) {
+    return new EmbedBuilder()
+        .setColor(embeds.NEUTRAL_COLOR)
+        .setTitle('🛡️ Postulación para Staff | UABC')
+        .setDescription(
+            `Respuestas de <@${ownerId}>. Queremos conocer tu criterio y tus ganas de apoyar a la comunidad.\n\n` +
+            STAFF_QUESTIONS.map((question, index) =>
+                `**${index + 1}. ${question}**\n${answers[index]}`
+            ).join('\n\n') +
+            '\n\n> Revisaremos tus respuestas y te contactaremos si avanzas en el proceso.'
+        );
+}
+
+module.exports = {
+    panelEmbed, panelButtons, typeMenu, welcomeEmbed, ticketButtons, closeConfirmation,
+    STAFF_QUESTIONS, staffApplicationModal, staffApplicationContinue, staffApplicationEmbed,
+};
