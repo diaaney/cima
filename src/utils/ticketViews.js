@@ -75,29 +75,22 @@ function closeConfirmation() {
 }
 
 const STAFF_QUESTIONS = Object.freeze([
-    '¿Por qué quieres ser staff y qué aportarías al servidor?',
-    '¿Tienes experiencia moderando comunidades?',
-    '¿Qué harías si dos miembros comienzan a insultarse?',
-    '¿Cómo actuarías si un amigo o alguien del staff rompe las reglas?',
-    '¿Qué harías si no sabes cómo resolver una situación?',
-    '¿Tienes disponibilidad para atender reportes y colaborar con el equipo?',
+    '¿Por qué quieres ser staff y qué aportarías?',
+    '¿Qué harías si dos miembros se insultan?',
+    '¿Qué harías si un amigo o staff rompe las reglas?',
 ]);
 
 const STAFF_QUESTION_LABELS = Object.freeze([
     '¿Por qué quieres ser staff?',
-    '¿Has moderado antes?',
     '¿Dos miembros se insultan?',
     '¿Un amigo rompe las reglas?',
-    '¿No sabes resolver algo?',
-    '¿Puedes atender reportes?',
 ]);
 
-function staffApplicationModal(part) {
+function staffApplicationModal() {
     const modal = new ModalBuilder()
-        .setCustomId(`ticket:staff-form-${part}`)
-        .setTitle(`Postulación para Staff · ${part}/2`);
-    const offset = (part - 1) * 3;
-    for (let index = offset; index < offset + 3; index++) {
+        .setCustomId('ticket:staff-form')
+        .setTitle('Postulación para Staff');
+    for (let index = 0; index < STAFF_QUESTIONS.length; index++) {
         modal.addComponents(new ActionRowBuilder().addComponents(
             new TextInputBuilder()
                 .setCustomId(`answer-${index}`)
@@ -110,14 +103,6 @@ function staffApplicationModal(part) {
         ));
     }
     return modal;
-}
-
-function staffApplicationContinue() {
-    return [new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('ticket:staff-continue')
-            .setLabel('Continuar postulación (4–6)')
-            .setStyle(ButtonStyle.Primary)
-    )];
 }
 
 function staffApplicationEmbed(ownerId, answers) {
@@ -135,5 +120,5 @@ function staffApplicationEmbed(ownerId, answers) {
 
 module.exports = {
     panelEmbed, panelButtons, typeMenu, welcomeEmbed, ticketButtons, closeConfirmation,
-    STAFF_QUESTIONS, staffApplicationModal, staffApplicationContinue, staffApplicationEmbed,
+    STAFF_QUESTIONS, staffApplicationModal, staffApplicationEmbed,
 };
