@@ -1,7 +1,6 @@
 const { EmbedBuilder } = require('discord.js');
-const embeds = require('../constants/embeds');
 const { getAllUserStats } = require('./storage');
-const { getAllLevelProfiles, levelFromXp } = require('./levelSystem');
+const { getAllLevelProfiles, levelFromXp, rankForLevel, highestMemberRank } = require('./levelSystem');
 
 const formatNumber = number => number.toLocaleString('es-MX');
 const medals = ['🥇', '🥈', '🥉'];
@@ -20,29 +19,48 @@ function rankChat(profiles) {
         .sort((a, b) => b.xp - a.xp || a.id.localeCompare(b.id));
 }
 
-function buildLeaderboard(type, guildId, viewerId = null) {
+function buildLeaderboard(type, guild, viewerId = null) {
     const isCounting = type === 'counting';
-    const ranked = isCounting ? rankCounting(getAllUserStats()) : rankChat(getAllLevelProfiles(guildId));
-    const title = isCounting ? '🏆 Top de counting' : '🏆 Top de niveles';
-    const lines = ranked.slice(0, 10).map((entry, index) => {
+    const profiles = getAllLevelProfiles(guild.id);
+    const ranked = isCounting ? rankCounting(getAllUserStats()) : rankChat(profiles);
+    const title = isCounting ? '🏆 Top de counting' : '🏆 Top de chat y niveles';
+    const levelOf = entry => {
+        const saved = profiles[entry.id];
+        if (saved) return levelFromXp(saved.xp || 0);
+        const member = guild.members.cache.get(entry.id);
+        return member ? highestMemberRank(member)?.level ?? 0 : 0;
+    };
+    const rankIcon = entry => {
+        const name = rankForLevel(levelOf(entry))?.emoji;
+        const emoji = guild.emojis.cache.find(item => item.name === name);
+        return emoji ? `<:${emoji.name}:${emoji.id}> ` : '';
+    };
+    const row = (entry, index) => {
         const place = medals[index] || `**${index + 1}.**`;
         const score = isCounting
             ? `**${formatNumber(entry.counted)}** números · ${formatNumber(entry.points)} puntos`
-            : `nivel **${levelFromXp(entry.xp)}** · ${formatNumber(entry.xp)} XP`;
-        return `${place} <@${entry.id}> — ${score}`;
-    });
+            : `**Nv. ${levelOf(entry)}** · ${formatNumber(entry.xp)} XP`;
+        return `${place} ${rankIcon(entry)}<@${entry.id}>  ·  ${score}`;
+    };
+    const top = ranked.slice(0, 10);
+    const podium = top.slice(0, 3).map(row);
+    const rest = top.slice(3).map((entry, index) => row(entry, index + 3));
+    const sections = [];
+    if (podium.length) sections.push(`**PODIO**\n${podium.join('\n')}`);
+    if (rest.length) sections.push(`**CLASIFICACIÓN**\n${rest.join('\n')}`);
+    if (!top.length) sections.push(isCounting ? 'Todavía nadie ha contado.' : 'Todavía nadie ha ganado XP.');
 
-    if (lines.length === 0) lines.push(isCounting ? 'Todavía nadie ha contado.' : 'Todavía nadie ha ganado XP.');
     const viewerIndex = viewerId ? ranked.findIndex(entry => entry.id === viewerId) : -1;
     if (viewerIndex >= 10) {
         const entry = ranked[viewerIndex];
-        lines.push(`\nTu puesto: **#${viewerIndex + 1}** · ${formatNumber(isCounting ? entry.counted : entry.xp)} ${isCounting ? 'números' : 'XP'}`);
+        sections.push(`**TU POSICIÓN**\n${rankIcon(entry)}<@${entry.id}>  ·  **#${viewerIndex + 1}**  ·  ${formatNumber(isCounting ? entry.counted : entry.xp)} ${isCounting ? 'números' : 'XP'}`);
     }
 
     return new EmbedBuilder()
-        .setColor(embeds.NEUTRAL_COLOR)
+        .setColor(isCounting ? '#51B7AE' : '#E9AD50')
         .setTitle(title)
-        .setDescription(lines.join('\n'));
+        .setDescription(sections.join('\n\n'))
+        .setFooter({ text: isCounting ? 'Cada número cuenta para subir en el ranking' : 'Gana XP al participar en la comunidad' });
 }
 
 module.exports = { rankCounting, rankChat, buildLeaderboard };

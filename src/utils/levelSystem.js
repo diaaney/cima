@@ -2,14 +2,14 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const RANKS = Object.freeze([
-    { level: 0, id: process.env.ASPIRANTE_ROLE_ID?.trim() || '1558422865085206648', name: 'Aspirante' },
-    { level: 2, id: '1558422919565156442', name: 'Nuevo Ingreso' },
-    { level: 5, id: '1558422939450212513', name: 'Cimarrón Novato' },
-    { level: 8, id: '1558422961181163531', name: 'Cimarrón Aplicado' },
-    { level: 14, id: '1558422983024840814', name: 'Cimarrón Avanzado' },
-    { level: 20, id: '1558423003807621160', name: 'Cimarrón Veterano' },
-    { level: 26, id: '1558423025777377320', name: 'Orgullo Cimarrón' },
-    { level: 32, id: '1558423056899248179', name: 'Leyenda Cimarrona' },
+    { level: 0, id: process.env.ASPIRANTE_ROLE_ID?.trim() || '1558422865085206648', name: 'Aspirante', emoji: 'level_aspirante' },
+    { level: 2, id: '1558422919565156442', name: 'Nuevo Ingreso', emoji: 'level_nuevo_ingreso' },
+    { level: 5, id: '1558422939450212513', name: 'Cimarrón Novato', emoji: 'level_cimarron_novato' },
+    { level: 8, id: '1558422961181163531', name: 'Cimarrón Aplicado', emoji: 'level_cimarron_aplicado' },
+    { level: 14, id: '1558422983024840814', name: 'Cimarrón Avanzado', emoji: 'level_cimarron_avanzado' },
+    { level: 20, id: '1558423003807621160', name: 'Cimarrón Veterano', emoji: 'level_cimarron_veterano' },
+    { level: 26, id: '1558423025777377320', name: 'Orgullo Cimarrón', emoji: 'level_orgullo_cimarron' },
+    { level: 32, id: '1558423056899248179', name: 'Leyenda Cimarrona', emoji: 'level_leyenda_cimarrona' },
 ]);
 
 const XP_PER_MESSAGE = 20;

@@ -25,7 +25,7 @@ async function checkCountingIdle(client, inFlight = new Set(), now = Date.now())
 
             await channel.send({
                 content: `⏳ Llevamos 3 minutos sin contar. Nos quedamos en el **${counting.current_number.toLocaleString('es-MX')}**; sigue el **${(counting.current_number + 1).toLocaleString('es-MX')}**.`,
-                embeds: [buildLeaderboard('counting', guild.id)],
+                embeds: [buildLeaderboard('counting', guild)],
                 allowedMentions: { parse: [] },
             });
             markCountingIdleAnnounced(guild.id, counting.last_count_at);

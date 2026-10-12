@@ -19,7 +19,7 @@ module.exports = {
 
         const type = interaction.options.getString('tipo', true);
         await interaction.editReply({
-            embeds: [buildLeaderboard(type, interaction.guildId, interaction.user.id)],
+            embeds: [buildLeaderboard(type, interaction.guild, interaction.user.id)],
             allowedMentions: { parse: [] },
         });
     }
