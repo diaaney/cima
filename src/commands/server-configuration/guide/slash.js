@@ -69,9 +69,12 @@ function buildInfoEmbeds(guild) {
         .setTitle('Rangos y niveles')
         .setDescription(
             `<@&${UNVERIFIED_ROLE_ID}> limita el acceso hasta confirmar tu correo. Al verificarte recibes <@&${RANKS[0].id}>. Después, Cima cambia automáticamente tu rango al subir de nivel:\n\n` +
-            [...RANKS].reverse().map(rank => `• <@&${rank.id}>${rankEmoji[rank.name] ? ` ${rankEmoji[rank.name]}` : ''}${RANK_COLORS[rank.name] ? ` (**${RANK_COLORS[rank.name]}**)` : ''} · nivel **${rank.level}**`).join('\n') +
+            [...RANKS].reverse().map(rank => {
+                const icon = rankEmoji[rank.name] || emoji(rank.emoji);
+                return `• <@&${rank.id}>${icon ? ` ${icon}` : ''}${RANK_COLORS[rank.name] ? ` (**${RANK_COLORS[rank.name]}**)` : ''} · nivel **${rank.level}**`;
+            }).join('\n') +
             `\n\n**Roles especiales**\n` +
-            `• <@&${BOOSTER_ROLE_ID}> ${emoji('booster_gem')} · x${BOOSTER_XP_MULTIPLIER} XP.\n` +
+            `• <@&${BOOSTER_ROLE_ID}> ${emoji('booster_gem')} · **x${BOOSTER_XP_MULTIPLIER} XP** en mensajes válidos y premios de counting.\n` +
             `• <@&${EARLY_SUPPORTER_ROLE_ID}> ${emoji('early_supporter')}\n\n` +
             `Cada mensaje válido fuera de counting da **20 XP**, como máximo una vez por minuto. Cada **10 números válidos** en counting dan otros **20 XP**. El tag ${uabcTag} da **x${UABC_TAG_XP_MULTIPLIER} XP** y Booster da **x${BOOSTER_XP_MULTIPLIER} XP**. **No se suman:** si tienes ambos, recibes x${BOOSTER_XP_MULTIPLIER}. Usa \`/nivel\` para ver tu progreso.`
         );
