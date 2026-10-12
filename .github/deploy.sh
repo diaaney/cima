@@ -38,6 +38,7 @@ ln -s "$shared/data" "$release/data"
 cd "$release"
 npm ci --omit=dev --no-audit --no-fund
 find index.js deploy-commands.js src -type f -name '*.js' -print0 | xargs -0 -n1 node --check
+node deploy-commands.js
 
 ln -s "$release" "$base/current.next"
 mv -Tf "$base/current.next" "$current"
