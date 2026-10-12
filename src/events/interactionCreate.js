@@ -49,6 +49,8 @@ fs.readdirSync(buttonsPath).forEach(file => {
 
 module.exports = (client) => {
     async function handleInteraction(interaction) {
+        if (!interaction.isCommand() && interaction.customId?.startsWith('ticket:')) return;
+
         // Slash command
         if (interaction.isCommand()) {
             const command = client.commands.get(interaction.commandName);
