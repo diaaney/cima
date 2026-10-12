@@ -1,12 +1,15 @@
 const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } = require('discord.js');
 const embeds = require('../../../constants/embeds');
 const { getCountingConfig, getVoicemasterConfig, getWelcomeConfig } = require('../../../utils/storage');
-const { RANKS, BOOSTER_ROLE_ID, BOOSTER_XP_MULTIPLIER, UABC_TAG_XP_MULTIPLIER } = require('../../../utils/levelSystem');
+const {
+    RANKS, BOOSTER_ROLE_ID, BOOSTER_XP_MULTIPLIER,
+    EARLY_SUPPORTER_ROLE_ID, EARLY_SUPPORTER_XP_MULTIPLIER,
+    UABC_TAG_XP_MULTIPLIER,
+} = require('../../../utils/levelSystem');
 
 const RULES_CHANNEL_ID = '1552775123222794250';
 const GENERAL_CHANNEL_ID = '1512976564541849760';
 const UNVERIFIED_ROLE_ID = process.env.UNVERIFIED_ROLE_ID?.trim() || '1558337666729115678';
-const EARLY_SUPPORTER_ROLE_ID = '1558478077976252479';
 const RANK_COLORS = {
     'Leyenda Cimarrona': 'Custom',
     'Orgullo Cimarrón': 'Golden',
@@ -42,7 +45,7 @@ function buildInfoEmbeds(guild) {
         .setTitle('Bienvenido a Nexo UABC')
         .setDescription(
             `Esta es la comunidad de Discord para convivir entre cimarrones. Empieza por <#${RULES_CHANNEL_ID}> y respeta las [normas de Discord](https://discord.com/guidelines).\n\n` +
-            `**XP extra** · Con el tag ${uabcTag} visible ganas **x${UABC_TAG_XP_MULTIPLIER} XP**; con <@&${BOOSTER_ROLE_ID}> ${emoji('booster_gem')} ganas **x${BOOSTER_XP_MULTIPLIER} XP**. Ambos aplican a mensajes válidos y a cada premio de 10 números en counting. **No se acumulan:** si tienes los dos, se aplica x${BOOSTER_XP_MULTIPLIER}.\n\n` +
+            `**XP extra** · Con el tag ${uabcTag} visible o <@&${EARLY_SUPPORTER_ROLE_ID}> ${emoji('early_supporter')} ganas **x${EARLY_SUPPORTER_XP_MULTIPLIER} XP**; con <@&${BOOSTER_ROLE_ID}> ${emoji('booster_gem')} ganas **x${BOOSTER_XP_MULTIPLIER} XP**. Estos beneficios aplican a mensajes válidos y a cada premio de 10 números en counting. **No se acumulan:** se aplica el multiplicador más alto.\n\n` +
             `**Dónde ir**\n` +
             `• <#${GENERAL_CHANNEL_ID}> · plática y conoce a la comunidad.\n` +
             `• ${counting} · cuenta en orden sin repetir turno; un error reinicia la cuenta.\n` +
@@ -75,8 +78,8 @@ function buildInfoEmbeds(guild) {
             }).join('\n') +
             `\n\n**Roles especiales**\n` +
             `• <@&${BOOSTER_ROLE_ID}> ${emoji('booster_gem')} · **x${BOOSTER_XP_MULTIPLIER} XP** en mensajes válidos y premios de counting.\n` +
-            `• <@&${EARLY_SUPPORTER_ROLE_ID}> ${emoji('early_supporter')}\n\n` +
-            `Cada mensaje válido fuera de counting da **20 XP**, como máximo una vez por minuto. Cada **10 números válidos** en counting dan otros **20 XP**. El tag ${uabcTag} da **x${UABC_TAG_XP_MULTIPLIER} XP** y Booster da **x${BOOSTER_XP_MULTIPLIER} XP**. **No se suman:** si tienes ambos, recibes x${BOOSTER_XP_MULTIPLIER}. Usa \`/nivel\` para ver tu progreso.`
+            `• <@&${EARLY_SUPPORTER_ROLE_ID}> ${emoji('early_supporter')} · **x${EARLY_SUPPORTER_XP_MULTIPLIER} XP** en mensajes válidos y premios de counting.\n\n` +
+            `Cada mensaje válido fuera de counting da **20 XP**, como máximo una vez por minuto. Cada **10 números válidos** en counting dan otros **20 XP**. El tag ${uabcTag} y Early Supporter dan **x${EARLY_SUPPORTER_XP_MULTIPLIER} XP**; Booster da **x${BOOSTER_XP_MULTIPLIER} XP**. **No se suman:** se aplica el multiplicador más alto. Usa \`/nivel\` para ver tu progreso.`
         );
 
     return [welcomeEmbed, commandsEmbed, ranksEmbed];
