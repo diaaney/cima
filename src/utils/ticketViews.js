@@ -83,6 +83,15 @@ const STAFF_QUESTIONS = Object.freeze([
     '¿Tienes disponibilidad para atender reportes y colaborar con el equipo?',
 ]);
 
+const STAFF_QUESTION_LABELS = Object.freeze([
+    '¿Por qué quieres ser staff?',
+    '¿Has moderado antes?',
+    '¿Dos miembros se insultan?',
+    '¿Un amigo rompe las reglas?',
+    '¿No sabes resolver algo?',
+    '¿Puedes atender reportes?',
+]);
+
 function staffApplicationModal(part) {
     const modal = new ModalBuilder()
         .setCustomId(`ticket:staff-form-${part}`)
@@ -92,7 +101,7 @@ function staffApplicationModal(part) {
         modal.addComponents(new ActionRowBuilder().addComponents(
             new TextInputBuilder()
                 .setCustomId(`answer-${index}`)
-                .setLabel(`${index + 1}. ${STAFF_QUESTIONS[index]}`.slice(0, 45))
+                .setLabel(`${index + 1}. ${STAFF_QUESTION_LABELS[index]}`)
                 .setPlaceholder(STAFF_QUESTIONS[index])
                 .setStyle(TextInputStyle.Paragraph)
                 .setMinLength(2)
