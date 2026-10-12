@@ -26,6 +26,7 @@ require('./src/events/voiceStateUpdate.js')(client);
 require('./src/events/guildMemberAdd.js')(client);
 require('./src/events/memberCount.js')(client);
 require('./src/events/verification.js')(client);
+require('./src/events/gameRoleVerification.js')(client);
 require('./src/events/singleGuild.js')(client);
 
 let loginRetryMs = 5_000;
