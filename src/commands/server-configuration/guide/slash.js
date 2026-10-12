@@ -45,7 +45,7 @@ function buildInfoEmbeds(guild) {
         .setTitle('Bienvenido a Nexo UABC')
         .setDescription(
             `Esta es la comunidad de Discord para convivir entre cimarrones. Empieza por <#${RULES_CHANNEL_ID}> y respeta las [normas de Discord](https://discord.com/guidelines).\n\n` +
-            `**XP extra** · Con el tag ${uabcTag} visible o <@&${EARLY_SUPPORTER_ROLE_ID}> ${emoji('early_supporter')} ganas **x${EARLY_SUPPORTER_XP_MULTIPLIER} XP**; con <@&${BOOSTER_ROLE_ID}> ${emoji('booster_gem')} ganas **x${BOOSTER_XP_MULTIPLIER} XP**. Estos beneficios aplican a mensajes válidos y a cada premio de 10 números en counting. **No se acumulan:** se aplica el multiplicador más alto.\n\n` +
+            `**XP extra** · Con el tag ${uabcTag} visible ganas **x${UABC_TAG_XP_MULTIPLIER} XP**; con <@&${EARLY_SUPPORTER_ROLE_ID}> ${emoji('early_supporter')} ganas **x${EARLY_SUPPORTER_XP_MULTIPLIER} XP**; con <@&${BOOSTER_ROLE_ID}> ${emoji('booster_gem')} ganas **x${BOOSTER_XP_MULTIPLIER} XP**. Estos beneficios aplican a mensajes válidos y a cada premio de 10 números en counting. **No se acumulan:** se aplica el multiplicador más alto.\n\n` +
             `**Dónde ir**\n` +
             `• <#${GENERAL_CHANNEL_ID}> · plática y conoce a la comunidad.\n` +
             `• ${counting} · cuenta en orden sin repetir turno; un error reinicia la cuenta.\n` +
@@ -79,7 +79,7 @@ function buildInfoEmbeds(guild) {
             `\n\n**Roles especiales**\n` +
             `• <@&${BOOSTER_ROLE_ID}> ${emoji('booster_gem')} · **x${BOOSTER_XP_MULTIPLIER} XP** en mensajes válidos y premios de counting.\n` +
             `• <@&${EARLY_SUPPORTER_ROLE_ID}> ${emoji('early_supporter')} · **x${EARLY_SUPPORTER_XP_MULTIPLIER} XP** en mensajes válidos y premios de counting.\n\n` +
-            `Cada mensaje válido fuera de counting da **20 XP**, como máximo una vez por minuto. Cada **10 números válidos** en counting dan otros **20 XP**. El tag ${uabcTag} y Early Supporter dan **x${EARLY_SUPPORTER_XP_MULTIPLIER} XP**; Booster da **x${BOOSTER_XP_MULTIPLIER} XP**. **No se suman:** se aplica el multiplicador más alto. Usa \`/nivel\` para ver tu progreso.`
+            `Cada mensaje válido fuera de counting da **20 XP**, como máximo una vez por minuto. Cada **10 números válidos** en counting dan otros **20 XP**. El tag ${uabcTag} da **x${UABC_TAG_XP_MULTIPLIER} XP**, Early Supporter da **x${EARLY_SUPPORTER_XP_MULTIPLIER} XP** y Booster da **x${BOOSTER_XP_MULTIPLIER} XP**. **No se suman:** se aplica el multiplicador más alto. Usa \`/nivel\` para ver tu progreso.`
         );
 
     return [welcomeEmbed, commandsEmbed, ranksEmbed];
