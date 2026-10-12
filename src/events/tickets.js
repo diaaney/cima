@@ -71,10 +71,13 @@ async function openTicket(interaction, type = interaction.values?.[0], answers =
             return interaction.editReply({ content: 'La categoría de soporte está llena. Avisa a un administrador.' });
         }
 
+        const member = type === 'staff'
+            ? await interaction.guild.members.fetch(interaction.user.id).catch(() => interaction.member)
+            : interaction.member;
         const number = store.reserveNumber();
         const ticket = { ownerId: interaction.user.id, type, number, createdAt: new Date().toISOString() };
         const channel = await interaction.guild.channels.create({
-            name: channelName(type, interaction.member, number),
+            name: channelName(type, member, number),
             type: ChannelType.GuildText,
             parent: CATEGORY_ID,
             topic: `Ticket #${number} · ${TYPES[type].label} · usuario ${interaction.user.id}`,
@@ -94,7 +97,7 @@ async function openTicket(interaction, type = interaction.values?.[0], answers =
             });
             if (type === 'staff') {
                 await channel.send({
-                    embeds: [staffApplicationEmbed(interaction.user.id, answers)],
+                    embeds: [staffApplicationEmbed(member, interaction.guild, answers)],
                     allowedMentions: { parse: [] },
                 });
             }

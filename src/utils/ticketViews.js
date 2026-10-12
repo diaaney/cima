@@ -4,6 +4,7 @@ const {
 } = require('discord.js');
 const embeds = require('../constants/embeds');
 const { TYPES } = require('../constants/tickets');
+const { highestMemberRank } = require('./levelSystem');
 
 function panelEmbed() {
     return new EmbedBuilder()
@@ -105,17 +106,29 @@ function staffApplicationModal() {
     return modal;
 }
 
-function staffApplicationEmbed(ownerId, answers) {
+function staffApplicationEmbed(member, guild, answers) {
+    const rank = highestMemberRank(member);
+    const icon = rank && guild.emojis.cache.find(emoji => emoji.name === rank.emoji);
+    const joinedAt = member.joinedTimestamp
+        ? `<t:${Math.floor(member.joinedTimestamp / 1000)}:F> (<t:${Math.floor(member.joinedTimestamp / 1000)}:R>)`
+        : 'Fecha no disponible';
+    const accountCreatedAt = member.user.createdTimestamp
+        ? `<t:${Math.floor(member.user.createdTimestamp / 1000)}:D>`
+        : 'Fecha no disponible';
     return new EmbedBuilder()
         .setColor(embeds.NEUTRAL_COLOR)
         .setTitle('🛡️ Postulación para Staff | UABC')
         .setDescription(
-            `Respuestas de <@${ownerId}>. Queremos conocer tu criterio y tus ganas de apoyar a la comunidad.\n\n` +
+            `**Solicitante:** <@${member.id}>\n` +
+            `**Ingreso al servidor:** ${joinedAt}\n` +
+            `**Cuenta creada:** ${accountCreatedAt}\n` +
+            `**Rango:** ${icon ? `${icon} ` : ''}${rank ? `<@&${rank.id}>` : 'Sin rango de nivel'}\n\n` +
             STAFF_QUESTIONS.map((question, index) =>
                 `**${index + 1}. ${question}**\n${answers[index]}`
             ).join('\n\n') +
             '\n\n> Revisaremos tus respuestas y te contactaremos si avanzas en el proceso.'
-        );
+        )
+        .setThumbnail(member.user.displayAvatarURL());
 }
 
 module.exports = {
