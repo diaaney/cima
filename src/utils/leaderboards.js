@@ -1,4 +1,5 @@
 const { EmbedBuilder } = require('discord.js');
+const embeds = require('../constants/embeds');
 const { getAllUserStats } = require('./storage');
 const { getAllLevelProfiles, levelFromXp, rankForLevel, highestMemberRank } = require('./levelSystem');
 
@@ -57,7 +58,7 @@ function buildLeaderboard(type, guild, viewerId = null) {
     }
 
     return new EmbedBuilder()
-        .setColor(isCounting ? '#51B7AE' : '#E9AD50')
+        .setColor(embeds.NEUTRAL_COLOR)
         .setTitle(title)
         .setDescription(sections.join('\n\n'))
         .setFooter({ text: isCounting ? 'Cada número cuenta para subir en el ranking' : 'Gana XP al participar en la comunidad' });
