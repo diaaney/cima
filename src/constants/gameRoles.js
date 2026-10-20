@@ -11,4 +11,5 @@ module.exports = Object.freeze([
     '1552554423618764821', // FIFA
     '1552554482494087249', // Minecraft
     '1552554602501640192', // Call of Duty
+    '1562244040504770621', // Guitar Hero
 ]);
