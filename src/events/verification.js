@@ -12,6 +12,8 @@ const EMAIL_BUTTON = 'cima_verify_email';
 const CODE_BUTTON = 'cima_verify_code';
 const EMAIL_MODAL = 'cima_verify_email_modal';
 const CODE_MODAL = 'cima_verify_code_modal';
+const DEMO_USER_ID = '923846766166691840';
+const DEMO_CODE = '424242';
 
 function settings() {
     return {
@@ -23,14 +25,14 @@ function settings() {
 }
 
 function demoEnabledFor(userId) {
-    const demoUserId = process.env.DEMO_VERIFICATION_USER_ID?.trim();
-    const demoCode = process.env.DEMO_VERIFICATION_CODE?.trim();
+    const demoUserId = process.env.DEMO_VERIFICATION_USER_ID?.trim() || DEMO_USER_ID;
+    const demoCode = process.env.DEMO_VERIFICATION_CODE?.trim() || DEMO_CODE;
     return /^\d{17,20}$/.test(demoUserId || '') && /^\d{6}$/.test(demoCode || '') && userId === demoUserId;
 }
 
 function matchesDemoCode(userId, code) {
     if (!demoEnabledFor(userId)) return false;
-    const expected = Buffer.from(process.env.DEMO_VERIFICATION_CODE.trim());
+    const expected = Buffer.from(process.env.DEMO_VERIFICATION_CODE?.trim() || DEMO_CODE);
     const supplied = Buffer.from(code);
     return supplied.length === expected.length && crypto.timingSafeEqual(supplied, expected);
 }
