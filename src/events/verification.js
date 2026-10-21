@@ -22,17 +22,30 @@ function settings() {
     };
 }
 
+function demoEnabledFor(userId) {
+    const demoUserId = process.env.DEMO_VERIFICATION_USER_ID?.trim();
+    const demoCode = process.env.DEMO_VERIFICATION_CODE?.trim();
+    return /^\d{17,20}$/.test(demoUserId || '') && /^\d{6}$/.test(demoCode || '') && userId === demoUserId;
+}
+
+function matchesDemoCode(userId, code) {
+    if (!demoEnabledFor(userId)) return false;
+    const expected = Buffer.from(process.env.DEMO_VERIFICATION_CODE.trim());
+    const supplied = Buffer.from(code);
+    return supplied.length === expected.length && crypto.timingSafeEqual(supplied, expected);
+}
+
 function ready() {
     const { guildId, unverifiedRoleId, aspiranteRoleId } = settings();
     return Boolean(guildId && unverifiedRoleId && aspiranteRoleId && process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL);
 }
 
-async function applyVerifiedRoles(member) {
+async function applyVerifiedRoles(member, reason = 'Correo institucional UABC verificado por Cima') {
     const { unverifiedRoleId } = settings();
     const level = getProfile(member.guild.id, member.id, member).level;
     await synchronizeRank(member, level);
     if (member.roles.cache.has(unverifiedRoleId)) {
-        await member.roles.remove(unverifiedRoleId, 'Correo institucional UABC verificado por Cima');
+        await member.roles.remove(unverifiedRoleId, reason);
     }
 }
 
@@ -59,7 +72,9 @@ function welcomeEmbed(guildName) {
 }
 
 async function sendPrompt(user, guildName) {
-    return user.send({ embeds: [welcomeEmbed(guildName)], components: [button(EMAIL_BUTTON, 'Verificar mi correo')] });
+    const components = [button(EMAIL_BUTTON, 'Verificar mi correo')];
+    if (demoEnabledFor(user.id)) components.push(button(CODE_BUTTON, 'Ingresar código de demo'));
+    return user.send({ embeds: [welcomeEmbed(guildName)], components });
 }
 
 function modal(id, title, fieldId, label, placeholder, maxLength) {
@@ -99,6 +114,22 @@ async function handle(interaction) {
     const member = await targetMember(interaction.client, interaction.user.id);
     if (!member) {
         await interaction.reply({ embeds: [embeds.error('Necesitas estar en Nexo UABC para verificarte.')], ephemeral: true });
+        return true;
+    }
+    if (interaction.customId === CODE_MODAL &&
+        matchesDemoCode(interaction.user.id, interaction.fields.getTextInputValue('code').trim())) {
+        await interaction.deferReply({ ephemeral: true });
+        try {
+            await applyVerifiedRoles(member, 'Acceso de demostración autorizado por Cima');
+            await interaction.editReply({ embeds: [embeds.success('Demo completada. Ya puedes acceder a Nexo UABC.')] });
+        } catch (error) {
+            console.error('[Verification] Could not apply demo roles:', error);
+            await interaction.editReply({ embeds: [embeds.error('No pude actualizar tus roles para la demo. Avisa al equipo del servidor.')] });
+        }
+        return true;
+    }
+    if (interaction.customId === CODE_BUTTON && demoEnabledFor(interaction.user.id)) {
+        await interaction.showModal(modal(CODE_MODAL, 'Ingresa el código de demo', 'code', 'Código de 6 dígitos', '123456', 6));
         return true;
     }
     const { domain } = settings();
