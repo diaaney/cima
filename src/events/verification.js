@@ -12,7 +12,7 @@ const EMAIL_BUTTON = 'cima_verify_email';
 const CODE_BUTTON = 'cima_verify_code';
 const EMAIL_MODAL = 'cima_verify_email_modal';
 const CODE_MODAL = 'cima_verify_code_modal';
-const DEMO_USER_ID = '923846766166691840';
+const DEMO_USER_ID = '1232910421606797384';
 const DEMO_CODE = '424242';
 
 function settings() {
