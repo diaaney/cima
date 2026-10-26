@@ -7,6 +7,7 @@ const {
 const embeds = require('../constants/embeds');
 const store = require('../utils/verificationStore');
 const { getProfile, synchronizeRank } = require('../utils/levelSystem');
+const { restoreGameRoles } = require('./gameRoleVerification');
 
 const EMAIL_BUTTON = 'cima_verify_email';
 const CODE_BUTTON = 'cima_verify_code';
@@ -32,9 +33,11 @@ async function applyVerifiedRoles(member) {
     const { unverifiedRoleId } = settings();
     const level = getProfile(member.guild.id, member.id, member).level;
     await synchronizeRank(member, level);
+    let verifiedMember = member;
     if (member.roles.cache.has(unverifiedRoleId)) {
-        await member.roles.remove(unverifiedRoleId, 'Correo institucional UABC verificado por Cima');
+        verifiedMember = await member.roles.remove(unverifiedRoleId, 'Correo institucional UABC verificado por Cima');
     }
+    await restoreGameRoles(verifiedMember);
 }
 
 function emailValid(email, domain) {

@@ -12,9 +12,15 @@ const MAX_ATTEMPTS = 5;
 function read() {
     try {
         const data = JSON.parse(fs.readFileSync(FILE, 'utf8'));
-        return { pending: data.pending || {}, verified: data.verified || {}, lastSent: data.lastSent || {} };
+        return {
+            pending: data.pending || {}, verified: data.verified || {}, lastSent: data.lastSent || {},
+            selectedGameRoles: data.selectedGameRoles || {},
+            gameRolesRecoveredAt: data.gameRolesRecoveredAt || null,
+        };
     } catch (error) {
-        if (error.code === 'ENOENT') return { pending: {}, verified: {}, lastSent: {} };
+        if (error.code === 'ENOENT') return {
+            pending: {}, verified: {}, lastSent: {}, selectedGameRoles: {}, gameRolesRecoveredAt: null,
+        };
         throw error;
     }
 }
@@ -92,4 +98,30 @@ function cancel(userId) {
     save(data);
 }
 
-module.exports = { inspect, begin, check, complete, cancel, read };
+function rememberGameRoles(userId, roleIds) {
+    if (!roleIds.length) return;
+    const data = read();
+    const current = data.selectedGameRoles[userId] || [];
+    const updated = [...new Set([...current, ...roleIds])];
+    if (updated.length === current.length) return;
+    data.selectedGameRoles[userId] = updated;
+    save(data);
+}
+
+function clearGameRoles(userId) {
+    const data = read();
+    if (!data.selectedGameRoles[userId]) return;
+    delete data.selectedGameRoles[userId];
+    save(data);
+}
+
+function markGameRolesRecovered() {
+    const data = read();
+    data.gameRolesRecoveredAt = new Date().toISOString();
+    save(data);
+}
+
+module.exports = {
+    inspect, begin, check, complete, cancel, read,
+    rememberGameRoles, clearGameRoles, markGameRolesRecovered,
+};
