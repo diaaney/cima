@@ -108,7 +108,7 @@ async function handle(interaction) {
         return true;
     }
     const { domain } = settings();
-    if (store.read().verified[interaction.user.id]) {
+    if (store.isVerified(interaction.user.id)) {
         try { await applyVerifiedRoles(member); }
         catch (error) {
             console.error('[Verification] Could not apply verified roles:', error);
@@ -210,7 +210,7 @@ module.exports = (client) => {
     if (!ready()) console.warn('[Verification] Missing GUILD_ID, UNVERIFIED_ROLE_ID, ASPIRANTE_ROLE_ID or Resend settings.');
     client.on(Events.GuildMemberAdd, async member => {
         if (member.user.bot || member.guild.id !== settings().guildId) return;
-        if (store.read().verified[member.id]) {
+        if (store.isVerified(member.id)) {
             try { await applyVerifiedRoles(member); }
             catch (error) { console.error('[Verification] Could not apply verified roles:', error); }
             return;

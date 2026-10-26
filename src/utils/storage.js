@@ -1,17 +1,5 @@
-const fs = require('fs');
-const path = require('path');
-const { atomicWrite, readJsonWithBackup, writeJsonWithBackup } = require('./jsonStore');
+const { database, getDocument, setDocument } = require('./database');
 const { DROP_PITY_COUNTS } = require('./itemDrops');
-
-const DATA_DIR = path.join(__dirname, '../../data');
-const CONFIG_FILE = path.join(DATA_DIR, 'config.json');
-const BACKUP_FILE = path.join(DATA_DIR, 'config.backup.json');
-const ROOMS_FILE = path.join(DATA_DIR, 'rooms.json');
-
-// Ensure data directory exists
-if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-}
 
 // ---------------------------------------------------------------------------
 // Defaults
@@ -45,15 +33,6 @@ function defaultGlobal() {
 
 function emptyConfig() {
     return { guilds: {}, global: defaultGlobal() };
-}
-
-// Initialize files if they don't exist
-if (!fs.existsSync(CONFIG_FILE)) {
-    atomicWrite(CONFIG_FILE, JSON.stringify(emptyConfig(), null, 2));
-}
-
-if (!fs.existsSync(ROOMS_FILE)) {
-    atomicWrite(ROOMS_FILE, JSON.stringify([], null, 2));
 }
 
 // ---------------------------------------------------------------------------
@@ -101,29 +80,19 @@ function migrateLegacy(legacy) {
 // Read / write helpers
 // ---------------------------------------------------------------------------
 function readConfig() {
-    let config = readJsonWithBackup(CONFIG_FILE, BACKUP_FILE);
-
-    if (isLegacyShape(config)) {
-        // Back up the legacy file before rewriting it
-        atomicWrite(BACKUP_FILE, JSON.stringify(config, null, 2));
-        config = migrateLegacy(config);
-        atomicWrite(CONFIG_FILE, JSON.stringify(config, null, 2));
-    }
-
-    return config;
+    return getDocument('config', emptyConfig());
 }
 
 function writeConfig(config) {
-    writeJsonWithBackup(CONFIG_FILE, BACKUP_FILE, config);
+    setDocument('config', config);
 }
 
 function readRooms() {
-    const data = fs.readFileSync(ROOMS_FILE, 'utf8');
-    return JSON.parse(data);
+    return getDocument('rooms', []);
 }
 
 function writeRooms(rooms) {
-    atomicWrite(ROOMS_FILE, JSON.stringify(rooms, null, 2));
+    setDocument('rooms', rooms);
 }
 
 // ---------------------------------------------------------------------------
@@ -412,90 +381,88 @@ function ensureUserStatsObject(config, user_id) {
 }
 
 function getUserStats(user_id) {
-    const config = readConfig();
-    const created = ensureUserStatsObject(config, user_id);
-    if (created) writeConfig(config);
-    return config.global.user_stats[user_id];
+    const row = database().prepare('SELECT value FROM user_stats WHERE user_id = ?').get(user_id);
+    if (row) {
+        const config = { global: { user_stats: { [user_id]: JSON.parse(row.value) } } };
+        if (ensureUserStatsObject(config, user_id)) saveUserStats(user_id, config.global.user_stats[user_id]);
+        return config.global.user_stats[user_id];
+    }
+    const stats = defaultStats();
+    saveUserStats(user_id, stats);
+    return stats;
 }
 
 function getAllUserStats() {
-    const config = readConfig();
-    const { changed } = ensureGlobal(config);
-    if (changed) writeConfig(config);
-    return config.global.user_stats || {};
+    return Object.fromEntries(database().prepare('SELECT user_id, value FROM user_stats').all()
+        .map(row => [row.user_id, JSON.parse(row.value)]));
+}
+
+function saveUserStats(user_id, stats) {
+    database().prepare(`
+        INSERT INTO user_stats (user_id, value) VALUES (?, ?)
+        ON CONFLICT(user_id) DO UPDATE SET value = excluded.value
+    `).run(user_id, JSON.stringify(stats));
 }
 
 function addToTotalCount(user_id, n) {
-    const config = readConfig();
-    ensureUserStatsObject(config, user_id);
-    config.global.user_stats[user_id].total_count += n;
-    config.global.user_stats[user_id].numbers_counted += 1;
-    writeConfig(config);
+    const stats = getUserStats(user_id);
+    stats.total_count += n;
+    stats.numbers_counted += 1;
+    saveUserStats(user_id, stats);
 }
 
 function addItem(user_id, item_type, qty = 1) {
-    const config = readConfig();
-    ensureUserStatsObject(config, user_id);
-    config.global.user_stats[user_id].items[item_type] =
-        (config.global.user_stats[user_id].items[item_type] || 0) + qty;
-    writeConfig(config);
+    const stats = getUserStats(user_id);
+    stats.items[item_type] = (stats.items[item_type] || 0) + qty;
+    saveUserStats(user_id, stats);
 }
 
 function removeItem(user_id, item_type, qty = 1) {
-    const config = readConfig();
-    ensureUserStatsObject(config, user_id);
-    const current = config.global.user_stats[user_id].items[item_type] || 0;
+    const stats = getUserStats(user_id);
+    const current = stats.items[item_type] || 0;
     if (current < qty) return false;
-    config.global.user_stats[user_id].items[item_type] = current - qty;
-    writeConfig(config);
+    stats.items[item_type] = current - qty;
+    saveUserStats(user_id, stats);
     return true;
 }
 
 function primeItem(user_id, item_type) {
-    const config = readConfig();
-    ensureUserStatsObject(config, user_id);
-    config.global.user_stats[user_id].primed[item_type] = true;
-    writeConfig(config);
+    const stats = getUserStats(user_id);
+    stats.primed[item_type] = true;
+    saveUserStats(user_id, stats);
 }
 
 function unprimeItem(user_id, item_type) {
-    const config = readConfig();
-    ensureUserStatsObject(config, user_id);
-    config.global.user_stats[user_id].primed[item_type] = false;
-    writeConfig(config);
+    const stats = getUserStats(user_id);
+    stats.primed[item_type] = false;
+    saveUserStats(user_id, stats);
 }
 
 function setSabotaged(target_id) {
-    const config = readConfig();
-    ensureUserStatsObject(config, target_id);
-    config.global.user_stats[target_id].sabotaged = true;
-    writeConfig(config);
+    const stats = getUserStats(target_id);
+    stats.sabotaged = true;
+    saveUserStats(target_id, stats);
 }
 
 function clearSabotaged(target_id) {
-    const config = readConfig();
-    ensureUserStatsObject(config, target_id);
-    config.global.user_stats[target_id].sabotaged = false;
-    writeConfig(config);
+    const stats = getUserStats(target_id);
+    stats.sabotaged = false;
+    saveUserStats(target_id, stats);
 }
 
 function armShield(user_id, current_number) {
-    const config = readConfig();
-    ensureUserStatsObject(config, user_id);
-    const stats = config.global.user_stats[user_id];
+    const stats = getUserStats(user_id);
     if (stats.items.streak_shield > 0) {
         stats.protecting_through = current_number + 25;
-        writeConfig(config);
+        saveUserStats(user_id, stats);
         return true;
     }
     return false;
 }
 
 function findShieldSaver(current_number) {
-    const config = readConfig();
-    const { global } = ensureGlobal(config);
     const candidates = [];
-    for (const [user_id, stats] of Object.entries(global.user_stats)) {
+    for (const [user_id, stats] of Object.entries(getAllUserStats())) {
         if (
             stats.protecting_through !== null &&
             stats.protecting_through !== undefined &&
@@ -510,13 +477,11 @@ function findShieldSaver(current_number) {
 }
 
 function consumeShield(user_id) {
-    const config = readConfig();
-    ensureUserStatsObject(config, user_id);
-    const stats = config.global.user_stats[user_id];
+    const stats = getUserStats(user_id);
     if (stats.items.streak_shield > 0) {
         stats.items.streak_shield -= 1;
         stats.protecting_through = null;
-        writeConfig(config);
+        saveUserStats(user_id, stats);
         return true;
     }
     return false;

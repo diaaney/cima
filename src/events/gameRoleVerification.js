@@ -11,14 +11,14 @@ const restoring = new Map();
 function isVerified(member) {
     const unverifiedRoleId = process.env.UNVERIFIED_ROLE_ID?.trim();
     return !member.roles.cache.has(unverifiedRoleId) &&
-        Boolean(highestMemberRank(member) || verificationStore.read().verified[member.id]);
+        Boolean(highestMemberRank(member) || verificationStore.isVerified(member.id));
 }
 
 function restoreGameRoles(member) {
     if (restoring.has(member.id)) return restoring.get(member.id);
     const task = (async () => {
         if (member.user.bot || member.guild.id !== process.env.GUILD_ID?.trim() || !isVerified(member)) return;
-        const saved = verificationStore.read().selectedGameRoles[member.id] || [];
+        const saved = verificationStore.getSelectedGameRoles(member.id);
         for (const roleId of saved.filter(id => gameRoleSet.has(id))) {
             if (!member.roles.cache.has(roleId)) {
                 await member.roles.add(roleId, 'Rol de juego elegido antes de la verificación UABC');
@@ -48,7 +48,7 @@ async function removeUnverifiedGameRoles(member) {
 }
 
 async function recoverHistoricalSelections(guild, members) {
-    if (verificationStore.read().gameRolesRecoveredAt) return;
+    if (verificationStore.hasRecoveredGameRoles()) return;
     const recovered = new Map();
     let before;
     for (;;) {

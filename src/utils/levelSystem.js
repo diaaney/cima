@@ -1,5 +1,4 @@
-const fs = require('node:fs');
-const path = require('node:path');
+const { database } = require('./database');
 
 const RANKS = Object.freeze([
     { level: 0, id: process.env.ASPIRANTE_ROLE_ID?.trim() || '1558422865085206648', name: 'Aspirante', emoji: 'level_aspirante' },
@@ -55,31 +54,31 @@ function highestMemberRank(member) {
     return [...RANKS].reverse().find(rank => member.roles.cache.has(rank.id)) || null;
 }
 
-function storePath(guildId) {
-    if (process.env.LEVEL_STORE_FILE) return process.env.LEVEL_STORE_FILE;
-    if (!/^\d+$/.test(guildId)) throw new Error('Invalid guild ID for level storage');
-    return path.join(__dirname, '../../data', `levels-${guildId}.json`);
+function loadProfile(guildId, userId) {
+    const row = database().prepare(`
+        SELECT xp, last_awarded_at, counting_numbers
+        FROM level_profiles WHERE guild_id = ? AND user_id = ?
+    `).get(guildId, userId);
+    return row ? {
+        xp: row.xp,
+        lastAwardedAt: row.last_awarded_at,
+        countingNumbers: row.counting_numbers,
+    } : null;
 }
 
-function readStore(guildId) {
-    try {
-        return JSON.parse(fs.readFileSync(storePath(guildId), 'utf8'));
-    } catch (error) {
-        if (error.code === 'ENOENT') return {};
-        throw error;
-    }
-}
-
-function writeStore(guildId, data) {
-    const filename = storePath(guildId);
-    fs.mkdirSync(path.dirname(filename), { recursive: true });
-    const temporary = `${filename}.${process.pid}.tmp`;
-    fs.writeFileSync(temporary, JSON.stringify(data, null, 2));
-    fs.renameSync(temporary, filename);
+function saveProfile(guildId, userId, profile) {
+    database().prepare(`
+        INSERT INTO level_profiles (guild_id, user_id, xp, last_awarded_at, counting_numbers)
+        VALUES (?, ?, ?, ?, ?)
+        ON CONFLICT(guild_id, user_id) DO UPDATE SET
+            xp = excluded.xp,
+            last_awarded_at = excluded.last_awarded_at,
+            counting_numbers = excluded.counting_numbers
+    `).run(guildId, userId, profile.xp, profile.lastAwardedAt || 0, profile.countingNumbers || 0);
 }
 
 function getProfile(guildId, userId, member = null) {
-    const saved = readStore(guildId)[userId];
+    const saved = loadProfile(guildId, userId);
     const baseline = member ? highestMemberRank(member) : null;
     const xp = saved?.xp ?? xpForLevel(baseline?.level ?? 0);
     return {
@@ -91,12 +90,16 @@ function getProfile(guildId, userId, member = null) {
 }
 
 function getAllLevelProfiles(guildId) {
-    return readStore(guildId);
+    return Object.fromEntries(database().prepare(`
+        SELECT user_id, xp, last_awarded_at, counting_numbers
+        FROM level_profiles WHERE guild_id = ?
+    `).all(guildId).map(row => [row.user_id, {
+        xp: row.xp, lastAwardedAt: row.last_awarded_at, countingNumbers: row.counting_numbers,
+    }]));
 }
 
 function awardMessage(guildId, userId, member, now = Date.now()) {
-    const data = readStore(guildId);
-    const current = data[userId] || {
+    const current = loadProfile(guildId, userId) || {
         xp: xpForLevel(highestMemberRank(member)?.level ?? 0),
         lastAwardedAt: 0,
         countingNumbers: 0,
@@ -107,8 +110,7 @@ function awardMessage(guildId, userId, member, now = Date.now()) {
     }
 
     const updated = { ...current, xp: current.xp + xpForMember(member), lastAwardedAt: now };
-    data[userId] = updated;
-    writeStore(guildId, data);
+    saveProfile(guildId, userId, updated);
     return {
         awarded: true,
         previousLevel,
@@ -117,8 +119,7 @@ function awardMessage(guildId, userId, member, now = Date.now()) {
 }
 
 function awardCountingNumber(guildId, userId, member) {
-    const data = readStore(guildId);
-    const current = data[userId] || {
+    const current = loadProfile(guildId, userId) || {
         xp: xpForLevel(highestMemberRank(member)?.level ?? 0),
         lastAwardedAt: 0,
         countingNumbers: 0,
@@ -131,8 +132,7 @@ function awardCountingNumber(guildId, userId, member) {
         countingNumbers,
         xp: current.xp + (awarded ? xpForMember(member) : 0),
     };
-    data[userId] = updated;
-    writeStore(guildId, data);
+    saveProfile(guildId, userId, updated);
     return { awarded, previousLevel, profile: { ...updated, level: levelFromXp(updated.xp) } };
 }
 

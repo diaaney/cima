@@ -19,6 +19,11 @@ migrate-emojis.js
 data/*.json
 data/*.backup.json
 data/*.tmp
+data/*.sqlite
+data/*.sqlite-wal
+data/*.sqlite-shm
+data/*.sqlite-journal
+data/backups/
 logs/
 
 # Git

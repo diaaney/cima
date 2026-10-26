@@ -5,7 +5,12 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "deploy": "node deploy-commands.js"
+    "deploy": "node deploy-commands.js",
+    "migrate": "node src/utils/migrateSqlite.js",
+    "backup": "node src/utils/backupSqlite.js"
+  },
+  "engines": {
+    "node": ">=24.0.0"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.101.1",

@@ -1,13 +1,7 @@
-const fs = require('node:fs');
-const path = require('node:path');
-const { readJsonWithBackup, writeJsonWithBackup } = require('./jsonStore');
-
-const filename = process.env.TICKET_STORE_FILE || path.join(__dirname, '../../data/tickets.json');
-const backup = `${filename}.backup.json`;
+const { getDocument, setDocument } = require('./database');
 
 function read() {
-    if (!fs.existsSync(filename) && !fs.existsSync(backup)) return { lastNumber: 0, tickets: {} };
-    const data = readJsonWithBackup(filename, backup);
+    const data = getDocument('tickets', { lastNumber: 0, tickets: {} });
     return {
         lastNumber: Number.isSafeInteger(data.lastNumber) ? data.lastNumber : 0,
         tickets: data.tickets && typeof data.tickets === 'object' ? data.tickets : {},
@@ -15,8 +9,7 @@ function read() {
 }
 
 function save(data) {
-    fs.mkdirSync(path.dirname(filename), { recursive: true });
-    writeJsonWithBackup(filename, backup, data);
+    setDocument('tickets', data);
 }
 
 function reserveNumber() {

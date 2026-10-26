@@ -40,6 +40,8 @@ jobs:
             /tmp/cima-release.tar.gz "ubuntu@$VPS_HOST:/home/ubuntu/cima-release.tar.gz"
           scp -i "$HOME/.ssh/cima_deploy" -o BatchMode=yes -o StrictHostKeyChecking=yes \
             .github/deploy.sh "ubuntu@$VPS_HOST:/home/ubuntu/cima-deploy.sh"
+          scp -i "$HOME/.ssh/cima_deploy" -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            .github/cima-backup.service .github/cima-backup.timer "ubuntu@$VPS_HOST:/home/ubuntu/"
 
       - name: Activate release
         env:

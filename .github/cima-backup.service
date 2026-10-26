@@ -1,0 +1,12 @@
+[Unit]
+Description=Back up Cima SQLite database
+
+[Service]
+Type=oneshot
+User=ubuntu
+WorkingDirectory=/home/ubuntu/cima-deploy/current
+Environment=CIMA_BACKUP_DIR=/home/ubuntu/cima-deploy/backups
+ExecStart=/usr/bin/node /home/ubuntu/cima-deploy/current/src/utils/backupSqlite.js
+NoNewPrivileges=true
+ProtectSystem=full
+PrivateTmp=true
