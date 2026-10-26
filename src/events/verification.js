@@ -8,6 +8,7 @@ const embeds = require('../constants/embeds');
 const store = require('../utils/verificationStore');
 const { getProfile, synchronizeRank } = require('../utils/levelSystem');
 const { restoreGameRoles } = require('./gameRoleVerification');
+const { sendWelcomeMessage } = require('./guildMemberAdd');
 
 const EMAIL_BUTTON = 'cima_verify_email';
 const CODE_BUTTON = 'cima_verify_code';
@@ -38,6 +39,7 @@ async function applyVerifiedRoles(member) {
         verifiedMember = await member.roles.remove(unverifiedRoleId, 'Correo institucional UABC verificado por Cima');
     }
     await restoreGameRoles(verifiedMember);
+    return verifiedMember;
 }
 
 function emailValid(email, domain) {
@@ -189,7 +191,10 @@ async function handle(interaction) {
             return true;
         }
         try {
-            await applyVerifiedRoles(member);
+            const verifiedMember = await applyVerifiedRoles(member);
+            await sendWelcomeMessage(verifiedMember).catch(error =>
+                console.error('[Verification] Could not send welcome message:', error)
+            );
         } catch (error) {
             console.error('[Verification] Could not apply verified roles:', error);
             await interaction.editReply({ embeds: [embeds.error('Tu correo ya está verificado, pero no pude actualizar tus roles. Usa /verificar otra vez o avisa al equipo del servidor.')] });
