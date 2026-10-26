@@ -1,0 +1,71 @@
+name: Announce commits in Discord
+
+on:
+  push:
+
+permissions: {}
+
+jobs:
+  announce:
+    if: startsWith(github.ref, 'refs/heads/') && github.event.deleted != true
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Post each pushed commit
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_COMMITS_WEBHOOK }}
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+
+          const webhook = process.env.DISCORD_WEBHOOK_URL;
+          if (!webhook) throw new Error('Missing DISCORD_COMMITS_WEBHOOK secret');
+          const event = JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'));
+          const commits = event.commits || [];
+          const branch = event.ref.replace(/^refs\/heads\//, '');
+          const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+          const endpoint = `${webhook}${webhook.includes('?') ? '&' : '?'}wait=true`;
+
+          async function post(commit) {
+            const url = `${event.repository.html_url}/commit/${commit.id}`;
+            const [subject, ...body] = commit.message.split('\n');
+            const author = commit.author?.name || 'Desconocido';
+            const payload = {
+              username: 'Cima • GitHub',
+              allowed_mentions: { parse: [] },
+              embeds: [{
+                title: subject.slice(0, 256) || 'Commit sin título',
+                url,
+                description: `**Autor:** ${author.slice(0, 100)}\n**Rama:** ${branch}\n**Commit:** \`${commit.id.slice(0, 7)}\`${body.length ? `\n\n${body.join('\n').trim().slice(0, 1500)}` : ''}`,
+              }],
+            };
+
+            for (let attempt = 0; attempt < 5; attempt++) {
+              const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+              });
+              if (response.ok) return;
+              if (response.status === 429) {
+                const rateLimit = await response.json().catch(() => ({}));
+                await wait(Math.max(1000, Number(rateLimit.retry_after || 1) * 1000) + 250);
+                continue;
+              }
+              if (response.status >= 500) {
+                await wait(1000 * (attempt + 1));
+                continue;
+              }
+              throw new Error(`Discord rejected commit ${commit.id.slice(0, 7)} with HTTP ${response.status}`);
+            }
+            throw new Error(`Discord did not accept commit ${commit.id.slice(0, 7)} after retries`);
+          }
+
+          (async () => {
+            for (const commit of commits) {
+              await post(commit);
+              await wait(500);
+            }
+            console.log(`Announced ${commits.length} commit(s) to Discord.`);
+          })().catch(error => { console.error(error); process.exitCode = 1; });
+          NODE
