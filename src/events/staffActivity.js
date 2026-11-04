@@ -6,9 +6,20 @@ async function reviewWeek(guild, start, goal) {
     let failed = false;
     for (const tracked of activity.trackedMembers(guild.id)) {
         if (tracked.eligible_week > start) continue;
-        const member = await guild.members.fetch(tracked.user_id).catch(() => null);
+        let member;
+        try {
+            member = await guild.members.fetch(tracked.user_id);
+        } catch (error) {
+            if (error?.code === 10007) {
+                activity.forgetMember(guild.id, tracked.user_id);
+                continue;
+            }
+            failed = true;
+            console.error(`[Staff activity] Could not fetch ${tracked.user_id}:`, error);
+            continue;
+        }
         if (!member) {
-            activity.forgetMember(guild.id, tracked.user_id);
+            failed = true;
             continue;
         }
         const roles = STAFF_ROLE_IDS.filter(id => member.roles.cache.has(id));
@@ -42,12 +53,18 @@ async function reviewWeek(guild, start, goal) {
 
 module.exports = client => {
     let reviewing = false;
+    let rosterReady = false;
     async function runReview() {
         if (reviewing) return;
         reviewing = true;
         try {
             const guild = client.guilds.cache.get(process.env.GUILD_ID?.trim());
             if (!guild) return;
+            if (!rosterReady) {
+                const members = await guild.members.fetch();
+                for (const member of members.values()) activity.trackMember(member);
+                rosterReady = true;
+            }
             const config = activity.settings(guild.id);
             const current = activity.weekStart();
             const firstFullWeek = config.started_week + activity.WEEK_MS;
@@ -67,18 +84,7 @@ module.exports = client => {
     client.once(Events.ClientReady, () => {
         const guild = client.guilds.cache.get(process.env.GUILD_ID?.trim());
         if (guild) activity.settings(guild.id);
-        void (async () => {
-            if (guild) {
-                try {
-                    const members = await guild.members.fetch();
-                    for (const member of members.values()) activity.trackMember(member);
-                } catch (error) {
-                    console.error('[Staff activity] Could not load staff roster:', error);
-                    return;
-                }
-            }
-            await runReview();
-        })();
+        void runReview();
         setInterval(() => { void runReview(); }, 60 * 60 * 1000);
     });
     client.on(Events.MessageCreate, message => {
