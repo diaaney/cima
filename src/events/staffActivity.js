@@ -1,5 +1,5 @@
 const { Events, PermissionFlagsBits } = require('discord.js');
-const { STAFF_ROLE_IDS } = require('../constants/tickets');
+const { STAFF_ROLE_IDS, ADMIN_ROLE_ID } = require('../constants/tickets');
 const activity = require('../utils/staffActivity');
 
 async function reviewWeek(guild, start, goal) {
@@ -22,7 +22,7 @@ async function reviewWeek(guild, start, goal) {
             failed = true;
             continue;
         }
-        const roles = STAFF_ROLE_IDS.filter(id => member.roles.cache.has(id));
+        const roles = activity.TRACKED_ROLE_IDS.filter(id => member.roles.cache.has(id));
         if (!roles.length) {
             activity.forgetMember(guild.id, tracked.user_id);
             continue;
@@ -30,13 +30,14 @@ async function reviewWeek(guild, start, goal) {
         const weekly = activity.metrics(guild.id, member.id, start).weekly;
         const roleId = roles.map(id => guild.roles.cache.get(id)).filter(Boolean)
             .sort((a, b) => b.position - a.position)[0]?.id || roles[0];
-        if (member.permissions.has(PermissionFlagsBits.Administrator)) {
+        if (member.roles.cache.has(ADMIN_ROLE_ID) || member.permissions.has(PermissionFlagsBits.Administrator)) {
             activity.review(guild.id, member.id, start, weekly, goal, roleId, 'exempt');
         } else if (activity.points(weekly) >= goal) {
             activity.review(guild.id, member.id, start, weekly, goal, roleId, 'ok');
         } else {
             try {
-                await member.roles.remove(roles, `Actividad semanal: ${activity.points(weekly)}/${goal} puntos`);
+                await member.roles.remove(STAFF_ROLE_IDS.filter(id => member.roles.cache.has(id)),
+                    `Actividad semanal: ${activity.points(weekly)}/${goal} puntos`);
                 activity.review(guild.id, member.id, start, weekly, goal, roleId, 'removed');
                 activity.forgetMember(guild.id, member.id);
                 console.log(`[Staff activity] Removed inactive staff roles from ${member.id}`);
@@ -94,8 +95,8 @@ module.exports = client => {
     });
     client.on(Events.GuildMemberUpdate, (before, after) => {
         if (after.guild.id !== process.env.GUILD_ID?.trim()) return;
-        const had = STAFF_ROLE_IDS.some(id => before.roles.cache.has(id));
-        const has = STAFF_ROLE_IDS.some(id => after.roles.cache.has(id));
+        const had = activity.TRACKED_ROLE_IDS.some(id => before.roles.cache.has(id));
+        const has = activity.TRACKED_ROLE_IDS.some(id => after.roles.cache.has(id));
         try {
             if (!had && has) activity.trackMember(after);
             if (had && !has) activity.forgetMember(after.guild.id, after.id);

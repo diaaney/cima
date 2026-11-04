@@ -1,17 +1,19 @@
 const { EmbedBuilder, PermissionFlagsBits, SlashCommandBuilder } = require('discord.js');
 const embeds = require('../../../constants/embeds');
-const { STAFF_ROLE_IDS } = require('../../../constants/tickets');
+const { STAFF_ROLE_IDS, ADMIN_ROLE_ID } = require('../../../constants/tickets');
 const activity = require('../../../utils/staffActivity');
 
 function roleIcon(guild, member, savedRoleId) {
-    const role = STAFF_ROLE_IDS.map(id => guild.roles.cache.get(id))
-        .filter(Boolean).filter(candidate => candidate.id === savedRoleId || member.roles.cache.has(candidate.id))
-        .sort((a, b) => b.position - a.position)[0];
-    if (!role) return '🛡️';
-    if (role.unicodeEmoji) return role.unicodeEmoji;
-    const name = role.name.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const emoji = guild.emojis.cache.find(item => item.name.toLowerCase().replace(/[^a-z0-9]/g, '') === name);
-    return emoji ? `${emoji}` : role.id === STAFF_ROLE_IDS[0] ? '🛡️' : '🔨';
+    const roleId = member.roles.cache.has(ADMIN_ROLE_ID) ? ADMIN_ROLE_ID :
+        savedRoleId || STAFF_ROLE_IDS.find(id => member.roles.cache.has(id));
+    const icons = {
+        [ADMIN_ROLE_ID]: ['rank_admin_crown', '👑'],
+        [STAFF_ROLE_IDS[0]]: ['rank_staff_hammer', '🔨'],
+        [STAFF_ROLE_IDS[1]]: ['rank_moderator_tools', '🛠️'],
+    };
+    const [name, fallback] = icons[roleId] || ['rank_staff_hammer', '🛡️'];
+    const emoji = guild.emojis.cache.find(item => item.name === name);
+    return emoji ? `${emoji}` : fallback;
 }
 
 function breakdown(value) {
@@ -32,7 +34,8 @@ function section(record, current, firstFullWeek, start) {
     if (record.review?.status === 'exempt') return 'exempt';
     if (record.review?.status === 'ok') return 'fulfilled';
     if (record.review?.status === 'error') return 'error';
-    if (record.member.permissions.has(PermissionFlagsBits.Administrator)) return 'exempt';
+    if (record.member.roles.cache.has(ADMIN_ROLE_ID) ||
+        record.member.permissions.has(PermissionFlagsBits.Administrator)) return 'exempt';
     if (!current && (start < firstFullWeek || record.tracked?.eligible_week > start)) return 'pending';
     if (record.score >= record.goal) return 'fulfilled';
     return current ? 'progress' : 'missed';
@@ -126,7 +129,7 @@ module.exports = {
         const start = current ? activity.weekStart() : activity.previousWeekStart();
         const members = await guild.members.fetch();
         const staff = [...members.values()].filter(member => !member.user.bot &&
-            STAFF_ROLE_IDS.some(id => member.roles.cache.has(id)));
+            activity.TRACKED_ROLE_IDS.some(id => member.roles.cache.has(id)));
         for (const member of staff) activity.trackMember(member);
         const reviews = new Map(activity.reviews(guild.id, start).map(row => [row.user_id, row]));
         const tracked = new Map(activity.trackedMembers(guild.id).map(row => [row.user_id, row]));

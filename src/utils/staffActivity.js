@@ -1,12 +1,13 @@
 const { database } = require('./database');
 const { ChannelType } = require('discord.js');
-const { CATEGORY_ID, STAFF_ROLE_IDS } = require('../constants/tickets');
+const { CATEGORY_ID, STAFF_ROLE_IDS, ADMIN_ROLE_ID } = require('../constants/tickets');
 const { getCountingConfig, getWelcomeConfig } = require('./storage');
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const TIME_ZONE = 'America/Tijuana';
 const MESSAGE_COOLDOWN_MS = 60_000;
 const REPLY_COOLDOWN_MS = 5 * 60_000;
+const TRACKED_ROLE_IDS = Object.freeze([ADMIN_ROLE_ID, ...STAFF_ROLE_IDS]);
 let initialized = false;
 const localDate = new Intl.DateTimeFormat('en-US', {
     timeZone: TIME_ZONE, year: 'numeric', month: '2-digit', day: '2-digit',
@@ -127,7 +128,7 @@ function setGoal(guildId, goal) {
 }
 
 function trackMember(member, now = Date.now()) {
-    if (member.user.bot || !STAFF_ROLE_IDS.some(id => member.roles.cache.has(id))) return;
+    if (member.user.bot || !TRACKED_ROLE_IDS.some(id => member.roles.cache.has(id))) return;
     settings(member.guild.id);
     setup().prepare(`
         INSERT OR IGNORE INTO staff_activity_members (guild_id, user_id, eligible_week)
@@ -151,7 +152,7 @@ function once(guildId, eventKey) {
 
 async function countMessage(message) {
     if (!message.guild || message.author.bot || !message.member) return;
-    if (!STAFF_ROLE_IDS.some(id => message.member.roles.cache.has(id))) return;
+    if (!TRACKED_ROLE_IDS.some(id => message.member.roles.cache.has(id))) return;
     if (message.content.trim().length < 5 || message.content.startsWith('!')) return;
     if (message.channel.parentId === CATEGORY_ID) return;
     if (getCountingConfig(message.guild.id).channel_id === message.channelId) return;
@@ -193,7 +194,7 @@ async function countMessage(message) {
 
 function countWelcome(message, newcomerId) {
     if (!newcomerId || !message.guild || !message.member ||
-        !STAFF_ROLE_IDS.some(id => message.member.roles.cache.has(id))) return;
+        !TRACKED_ROLE_IDS.some(id => message.member.roles.cache.has(id))) return;
     trackMember(message.member, message.createdTimestamp);
     const key = `welcome:${message.author.id}:${newcomerId}:${weekStart(message.createdTimestamp)}`;
     if (once(message.guild.id, key)) addMetric(message.guild.id, message.author.id, 'welcomes', message.createdTimestamp);
@@ -254,7 +255,7 @@ function markReviewed(guildId, start) {
 }
 
 module.exports = {
-    TIME_ZONE, weekStart, nextWeekStart, previousWeekStart,
+    TIME_ZONE, TRACKED_ROLE_IDS, weekStart, nextWeekStart, previousWeekStart,
     settings, setGoal, suggestionsForumId,
     trackMember, forgetMember, countMessage, countWelcome, addMetric, metrics, points,
     trackedMembers, review, reviews, markReviewed,

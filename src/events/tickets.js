@@ -161,7 +161,8 @@ async function claimTicket(interaction) {
         throw error;
     }
 
-    if (ticket.ownerId !== interaction.user.id && STAFF_ROLE_IDS.some(id => interaction.member.roles.cache.has(id))) {
+    if (ticket.ownerId !== interaction.user.id &&
+        staffActivity.TRACKED_ROLE_IDS.some(id => interaction.member.roles.cache.has(id))) {
         staffActivity.trackMember(interaction.member);
         staffActivity.addMetric(interaction.guildId, interaction.user.id, 'claims');
     }
@@ -203,7 +204,7 @@ async function closeTicket(interaction) {
         await interaction.channel.delete(`Ticket #${ticket.number} cerrado por ${interaction.user.id}`);
         store.close(interaction.channelId, interaction.user.id);
         if (ticket.ownerId !== interaction.user.id && ticket.claimedBy === interaction.user.id &&
-            STAFF_ROLE_IDS.some(id => interaction.member.roles.cache.has(id))) {
+            staffActivity.TRACKED_ROLE_IDS.some(id => interaction.member.roles.cache.has(id))) {
             staffActivity.trackMember(interaction.member);
             staffActivity.addMetric(interaction.guildId, interaction.user.id, 'closes');
         }
