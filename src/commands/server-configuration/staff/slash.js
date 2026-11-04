@@ -1,4 +1,5 @@
 const { EmbedBuilder, PermissionFlagsBits, SlashCommandBuilder } = require('discord.js');
+const embeds = require('../../../constants/embeds');
 const { STAFF_ROLE_IDS } = require('../../../constants/tickets');
 const activity = require('../../../utils/staffActivity');
 
@@ -13,25 +14,88 @@ function roleIcon(guild, member, savedRoleId) {
     return emoji ? `${emoji}` : role.id === STAFF_ROLE_IDS[0] ? '🛡️' : '🔨';
 }
 
-function line(guild, member, start, goal, current, tracked, review) {
-    const { weekly, total } = activity.metrics(guild.id, member.id, start);
-    const score = activity.points(weekly);
-    const status = review?.status === 'removed' ? '❌ no cumplió · rango retirado' :
-        review?.status === 'exempt' ? '⭐ exento' :
-            review?.status === 'ok' ? '✅ cumplió' :
-                review?.status === 'error' ? '⚠️ error al retirar' :
-        (!current && (tracked?.eligible_week > start || start < activity.nextWeekStart(activity.settings(guild.id).started_week))) ? '🕒 sin evaluación' :
-        member.permissions.has(PermissionFlagsBits.Administrator) ? '⭐ exento' :
-            score >= goal ? '✅ cumplió' : current ? '⏳ en curso' : '❌ no cumplió';
-    return `${roleIcon(guild, member, review?.role_id)} **${member.displayName.replace(/[*_`~|]/g, '')}** · <@${member.id}> · ${status}\n` +
-        `Semana: **${score}/${goal}** pts · ${breakdown(weekly)}\n` +
-        `Total: **${activity.points(total)}** pts · ${breakdown(total)}`;
+function breakdown(value) {
+    const parts = [
+        [value.replies, 'respuesta'],
+        [value.welcomes, 'bienvenida'],
+        [value.suggestions, 'sugerencia'],
+        [value.messages, 'mensaje'],
+        [value.claims, 'ticket reclamado'],
+        [value.closes, 'ticket cerrado'],
+    ].filter(([count]) => count > 0)
+        .map(([count, label]) => `${count} ${label}${count === 1 ? '' : 's'}`);
+    return parts.length ? parts.join(' · ') : 'sin actividad registrada';
 }
 
-function breakdown(value) {
-    return `${value.replies} respuestas · ${value.welcomes} bienvenidas · ` +
-        `${value.suggestions} sugerencias · ${value.messages} mensajes · ` +
-        `${value.claims} tickets, ${value.closes} cierres`;
+function section(record, current, firstFullWeek, start) {
+    if (record.review?.status === 'removed') return 'missed';
+    if (record.review?.status === 'exempt') return 'exempt';
+    if (record.review?.status === 'ok') return 'fulfilled';
+    if (record.review?.status === 'error') return 'error';
+    if (record.member.permissions.has(PermissionFlagsBits.Administrator)) return 'exempt';
+    if (!current && (start < firstFullWeek || record.tracked?.eligible_week > start)) return 'pending';
+    if (record.score >= record.goal) return 'fulfilled';
+    return current ? 'progress' : 'missed';
+}
+
+function activityEmbeds(guild, members, reviews, tracked, start, current, config) {
+    const firstFullWeek = activity.nextWeekStart(config.started_week);
+    const records = members.map(member => {
+        const values = activity.metrics(guild.id, member.id, start);
+        const review = reviews.get(member.id);
+        const record = {
+            member, review, tracked: tracked.get(member.id), weekly: values.weekly,
+            score: activity.points(values.weekly), total: activity.points(values.total),
+            goal: review?.goal || config.goal,
+        };
+        record.section = section(record, current, firstFullWeek, start);
+        return record;
+    });
+    const definitions = [
+        ['fulfilled', '✅ META CUMPLIDA'],
+        [current ? 'progress' : 'missed', current ? '📈 EN PROGRESO' : '❌ NO CUMPLIERON'],
+        ['exempt', '⭐ EXENTOS'],
+        ['pending', '🕒 SIN EVALUACIÓN'],
+        ['error', '⚠️ REVISAR'],
+    ];
+    const date = new Intl.DateTimeFormat('es-MX', {
+        timeZone: activity.TIME_ZONE, day: 'numeric', month: 'short',
+    });
+    const header = `**${date.format(start)} – ${date.format(activity.nextWeekStart(start))}** · Baja California\n` +
+        `Meta semanal: **${config.goal} puntos**${current && start < firstFullWeek ? ' · semana de observación' : ''}`;
+    const pages = [];
+    let page = header;
+    for (const [key, title] of definitions) {
+        const group = records.filter(record => record.section === key)
+            .sort((a, b) => b.score - a.score || a.member.id.localeCompare(b.member.id));
+        if (!group.length) continue;
+        let heading = `\n\n**${title} · ${group.length}**`;
+        for (const record of group) {
+            const detail = `${roleIcon(guild, record.member, record.review?.role_id)} ` +
+                `<@${record.member.id}> · **${record.score}/${record.goal} pts** · total **${record.total}**\n` +
+                `└ ${breakdown(record.weekly)}`;
+            let row = `${heading}\n${detail}`;
+            if (page.length + row.length > 3800 && page !== header) {
+                pages.push(page);
+                page = header;
+                heading = `\n\n**${title} · continuación**`;
+                row = `${heading}\n${detail}`;
+            }
+            page += row;
+            heading = '';
+        }
+    }
+    pages.push(records.length ? page : `${header}\n\nTodavía no hay miembros del equipo para mostrar.`);
+    return pages.slice(0, 10).map((description, index) => {
+        const embed = new EmbedBuilder()
+            .setColor(embeds.NEUTRAL_COLOR)
+            .setTitle(`🛡️ Actividad del equipo${pages.length > 1 ? ` · ${index + 1}/${pages.length}` : ''}`)
+            .setDescription(description)
+            .setFooter({ text: 'Respuestas 3 · bienvenidas 3 · sugerencias 4 · mensajes 1 · tickets 2/1 puntos' });
+        const icon = guild.iconURL?.();
+        if (icon) embed.setThumbnail(icon);
+        return embed;
+    });
 }
 
 module.exports = {
@@ -71,24 +135,11 @@ module.exports = {
             const member = members.get(userId);
             if (member && !member.user.bot) listed.set(userId, member);
         }
-        const sorted = [...listed.values()].sort((a, b) => activity.points(activity.metrics(guild.id, b.id, start).weekly) -
-            activity.points(activity.metrics(guild.id, a.id, start).weekly));
-        const chunks = [];
-        let chunk = '';
-        for (const member of sorted) {
-            const entry = `${line(guild, member, start, reviews.get(member.id)?.goal || config.goal,
-                current, tracked.get(member.id), reviews.get(member.id))}\n\n`;
-            if (chunk.length + entry.length > 3800) { chunks.push(chunk); chunk = ''; }
-            chunk += entry;
-        }
-        if (chunk) chunks.push(chunk);
-        const title = `🛡️ Actividad ${current ? 'semanal' : 'de la semana anterior'} · Staff`;
-        const embeds = (chunks.length ? chunks : ['Todavía no hay miembros con roles de Staff o Moderator.'])
-            .slice(0, 10).map((description, index) => new EmbedBuilder()
-                .setTitle(index === 0 ? title : `${title} (${index + 1})`)
-                .setDescription(description)
-                .setFooter({ text: `Lunes a lunes · hora de Baja California · ${current ? 'Semana en curso' : 'Semana cerrada'} · Meta: ${config.goal} puntos` }));
-        embeds[0].setAuthor({ name: `Del ${new Date(start).toLocaleDateString('es-MX', { timeZone: activity.TIME_ZONE })} al ${new Date(activity.nextWeekStart(start)).toLocaleDateString('es-MX', { timeZone: activity.TIME_ZONE })}` });
-        await interaction.editReply({ embeds, allowedMentions: { parse: [] } });
+        await interaction.editReply({
+            embeds: activityEmbeds(guild, [...listed.values()], reviews, tracked, start, current, config),
+            allowedMentions: { parse: [] },
+        });
     },
 };
+
+module.exports.activityEmbeds = activityEmbeds;
