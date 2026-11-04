@@ -56,8 +56,7 @@ function setup() {
             guild_id TEXT PRIMARY KEY,
             goal INTEGER NOT NULL DEFAULT 20 CHECK (goal BETWEEN 1 AND 500),
             started_week INTEGER NOT NULL,
-            last_reviewed_week INTEGER,
-            suggestions_forum_id TEXT
+            last_reviewed_week INTEGER
         );
         CREATE TABLE IF NOT EXISTS staff_activity_members (
             guild_id TEXT NOT NULL,
@@ -96,8 +95,6 @@ function setup() {
         );
     `);
     const columns = (table) => new Set(db.prepare(`PRAGMA table_info(${table})`).all().map(row => row.name));
-    const settingColumns = columns('staff_activity_settings');
-    if (!settingColumns.has('suggestions_forum_id')) db.exec('ALTER TABLE staff_activity_settings ADD COLUMN suggestions_forum_id TEXT');
     const memberColumns = columns('staff_activity_members');
     if (!memberColumns.has('last_reply_at')) db.exec('ALTER TABLE staff_activity_members ADD COLUMN last_reply_at INTEGER NOT NULL DEFAULT 0');
     const weekColumns = columns('staff_activity_weeks');
@@ -120,12 +117,6 @@ function setGoal(guildId, goal) {
     setup().prepare('UPDATE staff_activity_settings SET goal = ? WHERE guild_id = ?').run(goal, guildId);
 }
 
-function setSuggestionsForum(guildId, channelId) {
-    settings(guildId);
-    setup().prepare('UPDATE staff_activity_settings SET suggestions_forum_id = ? WHERE guild_id = ?')
-        .run(channelId, guildId);
-}
-
 function trackMember(member, now = Date.now()) {
     if (member.user.bot || !STAFF_ROLE_IDS.some(id => member.roles.cache.has(id))) return;
     settings(member.guild.id);
@@ -140,7 +131,7 @@ function forgetMember(guildId, userId) {
 }
 
 function suggestionsForumId(guild) {
-    return settings(guild.id).suggestions_forum_id || guild.channels.cache.find(channel =>
+    return guild.channels.cache.find(channel =>
         channel.type === ChannelType.GuildForum && /sugerenc/i.test(channel.name))?.id || null;
 }
 
@@ -255,7 +246,7 @@ function markReviewed(guildId, start) {
 
 module.exports = {
     TIME_ZONE, weekStart, nextWeekStart, previousWeekStart,
-    settings, setGoal, setSuggestionsForum, suggestionsForumId,
+    settings, setGoal, suggestionsForumId,
     trackMember, forgetMember, countMessage, countWelcome, addMetric, metrics, points,
     trackedMembers, review, reviews, markReviewed,
 };
