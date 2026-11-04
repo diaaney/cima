@@ -3,6 +3,7 @@ const {
 } = require('discord.js');
 const { CATEGORY_ID, STAFF_ROLE_IDS, ADMIN_ROLE_ID, TYPES } = require('../constants/tickets');
 const store = require('../utils/ticketStore');
+const staffActivity = require('../utils/staffActivity');
 const {
     typeMenu, welcomeEmbed, ticketButtons, closeConfirmation,
     staffApplicationModal, staffApplicationEmbed,
@@ -160,6 +161,11 @@ async function claimTicket(interaction) {
         throw error;
     }
 
+    if (ticket.ownerId !== interaction.user.id && STAFF_ROLE_IDS.some(id => interaction.member.roles.cache.has(id))) {
+        staffActivity.trackMember(interaction.member);
+        staffActivity.addMetric(interaction.guildId, interaction.user.id, 'claims');
+    }
+
     await interaction.message.edit({
         embeds: [welcomeEmbed(claimed)],
         components: ticketButtons(claimed),
@@ -196,6 +202,11 @@ async function closeTicket(interaction) {
         await interaction.update({ content: `Cerrando el ticket #${ticket.number}…`, components: [] });
         await interaction.channel.delete(`Ticket #${ticket.number} cerrado por ${interaction.user.id}`);
         store.close(interaction.channelId, interaction.user.id);
+        if (ticket.ownerId !== interaction.user.id && ticket.claimedBy === interaction.user.id &&
+            STAFF_ROLE_IDS.some(id => interaction.member.roles.cache.has(id))) {
+            staffActivity.trackMember(interaction.member);
+            staffActivity.addMetric(interaction.guildId, interaction.user.id, 'closes');
+        }
     } finally {
         closingChannels.delete(interaction.channelId);
     }
