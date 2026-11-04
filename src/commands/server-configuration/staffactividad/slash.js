@@ -20,7 +20,7 @@ function line(guild, member, start, goal, current, tracked, review) {
         review?.status === 'exempt' ? '⭐ exento' :
             review?.status === 'ok' ? '✅ cumplió' :
                 review?.status === 'error' ? '⚠️ error al retirar' :
-        (!current && (tracked?.eligible_week > start || start < activity.settings(guild.id).started_week + activity.WEEK_MS)) ? '🕒 sin evaluación' :
+        (!current && (tracked?.eligible_week > start || start < activity.nextWeekStart(activity.settings(guild.id).started_week))) ? '🕒 sin evaluación' :
         member.permissions.has(PermissionFlagsBits.Administrator) ? '⭐ exento' :
             score >= goal ? '✅ cumplió' : current ? '⏳ en curso' : '❌ no cumplió';
     return `${roleIcon(guild, member, review?.role_id)} **${member.displayName.replace(/[*_`~|]/g, '')}** · <@${member.id}> · ${status}\n` +
@@ -68,7 +68,7 @@ module.exports = {
         const guild = interaction.guild;
         const config = activity.settings(guild.id);
         const current = interaction.options.getString('semana') !== 'anterior';
-        const start = activity.weekStart() - (current ? 0 : activity.WEEK_MS);
+        const start = current ? activity.weekStart() : activity.previousWeekStart();
         const members = await guild.members.fetch();
         const staff = [...members.values()].filter(member => !member.user.bot &&
             STAFF_ROLE_IDS.some(id => member.roles.cache.has(id)));
@@ -96,8 +96,8 @@ module.exports = {
             .slice(0, 10).map((description, index) => new EmbedBuilder()
                 .setTitle(index === 0 ? title : `${title} (${index + 1})`)
                 .setDescription(description)
-                .setFooter({ text: `Lunes a lunes UTC · ${current ? 'Semana en curso' : 'Semana cerrada'} · Meta: ${config.goal} puntos` }));
-        embeds[0].setAuthor({ name: `Del ${new Date(start).toLocaleDateString('es-MX', { timeZone: 'UTC' })} al ${new Date(start + activity.WEEK_MS).toLocaleDateString('es-MX', { timeZone: 'UTC' })}` });
+                .setFooter({ text: `Lunes a lunes · hora de Baja California · ${current ? 'Semana en curso' : 'Semana cerrada'} · Meta: ${config.goal} puntos` }));
+        embeds[0].setAuthor({ name: `Del ${new Date(start).toLocaleDateString('es-MX', { timeZone: activity.TIME_ZONE })} al ${new Date(activity.nextWeekStart(start)).toLocaleDateString('es-MX', { timeZone: activity.TIME_ZONE })}` });
         await interaction.editReply({ embeds, allowedMentions: { parse: [] } });
     },
 };

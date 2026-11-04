@@ -67,12 +67,12 @@ module.exports = client => {
             }
             const config = activity.settings(guild.id);
             const current = activity.weekStart();
-            const firstFullWeek = config.started_week + activity.WEEK_MS;
+            const firstFullWeek = activity.nextWeekStart(config.started_week);
             let next = config.last_reviewed_week === null
-                ? firstFullWeek : config.last_reviewed_week + activity.WEEK_MS;
+                ? firstFullWeek : activity.nextWeekStart(config.last_reviewed_week);
             while (next < current) {
                 if (!await reviewWeek(guild, next, config.goal)) break;
-                next += activity.WEEK_MS;
+                next = activity.nextWeekStart(next);
             }
         } catch (error) {
             console.error('[Staff activity] Weekly review failed:', error);

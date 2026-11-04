@@ -3,15 +3,49 @@ const { ChannelType } = require('discord.js');
 const { CATEGORY_ID, STAFF_ROLE_IDS } = require('../constants/tickets');
 const { getCountingConfig, getWelcomeConfig } = require('./storage');
 
-const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+const TIME_ZONE = 'America/Tijuana';
 const MESSAGE_COOLDOWN_MS = 60_000;
 const REPLY_COOLDOWN_MS = 5 * 60_000;
 let initialized = false;
+const localDate = new Intl.DateTimeFormat('en-US', {
+    timeZone: TIME_ZONE, year: 'numeric', month: '2-digit', day: '2-digit',
+});
+const localDateTime = new Intl.DateTimeFormat('en-US', {
+    timeZone: TIME_ZONE, year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
+});
+
+function parts(formatter, time) {
+    return Object.fromEntries(formatter.formatToParts(time)
+        .filter(part => part.type !== 'literal')
+        .map(part => [part.type, Number(part.value)]));
+}
+
+function localMidnight(localDateUtc) {
+    let instant = localDateUtc + 8 * 60 * 60 * 1000;
+    for (let attempt = 0; attempt < 3; attempt++) {
+        const local = parts(localDateTime, instant);
+        const localAsUtc = Date.UTC(local.year, local.month - 1, local.day,
+            local.hour, local.minute, local.second);
+        instant += localDateUtc - localAsUtc;
+    }
+    return instant;
+}
 
 function weekStart(time = Date.now()) {
-    const date = new Date(time);
-    const day = (date.getUTCDay() + 6) % 7;
-    return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() - day);
+    const local = parts(localDate, time);
+    const date = Date.UTC(local.year, local.month - 1, local.day);
+    const day = (new Date(date).getUTCDay() + 6) % 7;
+    return localMidnight(date - day * DAY_MS);
+}
+
+function nextWeekStart(time = Date.now()) {
+    return weekStart(weekStart(time) + 8 * DAY_MS);
+}
+
+function previousWeekStart(time = Date.now()) {
+    return weekStart(weekStart(time) - 1);
 }
 
 function setup() {
@@ -98,7 +132,7 @@ function trackMember(member, now = Date.now()) {
     setup().prepare(`
         INSERT OR IGNORE INTO staff_activity_members (guild_id, user_id, eligible_week)
         VALUES (?, ?, ?)
-    `).run(member.guild.id, member.id, weekStart(now) + WEEK_MS);
+    `).run(member.guild.id, member.id, nextWeekStart(now));
 }
 
 function forgetMember(guildId, userId) {
@@ -220,7 +254,8 @@ function markReviewed(guildId, start) {
 }
 
 module.exports = {
-    WEEK_MS, weekStart, settings, setGoal, setSuggestionsForum, suggestionsForumId,
+    TIME_ZONE, weekStart, nextWeekStart, previousWeekStart,
+    settings, setGoal, setSuggestionsForum, suggestionsForumId,
     trackMember, forgetMember, countMessage, countWelcome, addMetric, metrics, points,
     trackedMembers, review, reviews, markReviewed,
 };
