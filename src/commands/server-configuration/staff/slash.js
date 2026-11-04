@@ -1,4 +1,4 @@
-const { EmbedBuilder, MessageFlags, PermissionFlagsBits, SlashCommandBuilder } = require('discord.js');
+const { EmbedBuilder, PermissionFlagsBits, SlashCommandBuilder } = require('discord.js');
 const { STAFF_ROLE_IDS } = require('../../../constants/tickets');
 const activity = require('../../../utils/staffActivity');
 
@@ -48,14 +48,14 @@ module.exports = {
 
     async execute(interaction) {
         if (!interaction.inGuild() || !interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
-            return interaction.reply({ content: 'Solo un administrador puede ver la actividad del equipo.', flags: MessageFlags.Ephemeral });
+            return interaction.reply({ content: 'Solo un administrador puede ver la actividad del equipo.' });
         }
         if (interaction.options.getSubcommand() === 'meta') {
             const goal = interaction.options.getInteger('puntos', true);
             activity.setGoal(interaction.guildId, goal);
-            return interaction.reply({ content: `Meta semanal actualizada a **${goal} puntos**.`, flags: MessageFlags.Ephemeral });
+            return interaction.reply({ content: `Meta semanal actualizada a **${goal} puntos**.` });
         }
-        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        await interaction.deferReply();
         const guild = interaction.guild;
         const config = activity.settings(guild.id);
         const current = interaction.options.getString('semana') !== 'anterior';
