@@ -43,6 +43,7 @@ function section(record, current, firstFullWeek, start) {
 
 function activityEmbeds(guild, members, reviews, tracked, start, current, config) {
     const firstFullWeek = activity.nextWeekStart(config.started_week);
+    const bottomBracket = guild.emojis.cache.find(emoji => emoji.name === 'bottombracket')?.toString() || '└';
     const records = members.map(member => {
         const values = activity.metrics(guild.id, member.id, start);
         const review = reviews.get(member.id);
@@ -76,7 +77,7 @@ function activityEmbeds(guild, members, reviews, tracked, start, current, config
         for (const record of group) {
             const detail = `${roleIcon(guild, record.member, record.review?.role_id)} ` +
                 `<@${record.member.id}> · **${record.score}/${record.goal} pts** · total **${record.total}**\n` +
-                `└ ${breakdown(record.weekly)}`;
+                `${bottomBracket} ${breakdown(record.weekly)}`;
             let row = `${heading}\n${detail}`;
             if (page.length + row.length > 3800 && page !== header) {
                 pages.push(page);
