@@ -54,9 +54,10 @@ function setup() {
     db.exec(`
         CREATE TABLE IF NOT EXISTS staff_activity_settings (
             guild_id TEXT PRIMARY KEY,
-            goal INTEGER NOT NULL DEFAULT 20 CHECK (goal BETWEEN 1 AND 500),
+            goal INTEGER NOT NULL DEFAULT 12 CHECK (goal BETWEEN 1 AND 500),
             started_week INTEGER NOT NULL,
-            last_reviewed_week INTEGER
+            last_reviewed_week INTEGER,
+            goal_default_version INTEGER NOT NULL DEFAULT 2
         );
         CREATE TABLE IF NOT EXISTS staff_activity_members (
             guild_id TEXT NOT NULL,
@@ -95,6 +96,14 @@ function setup() {
         );
     `);
     const columns = (table) => new Set(db.prepare(`PRAGMA table_info(${table})`).all().map(row => row.name));
+    if (!columns('staff_activity_settings').has('goal_default_version')) {
+        db.exec('ALTER TABLE staff_activity_settings ADD COLUMN goal_default_version INTEGER NOT NULL DEFAULT 1');
+    }
+    db.exec(`
+        UPDATE staff_activity_settings
+        SET goal = CASE WHEN goal = 20 THEN 12 ELSE goal END, goal_default_version = 2
+        WHERE goal_default_version = 1
+    `);
     const memberColumns = columns('staff_activity_members');
     if (!memberColumns.has('last_reply_at')) db.exec('ALTER TABLE staff_activity_members ADD COLUMN last_reply_at INTEGER NOT NULL DEFAULT 0');
     const weekColumns = columns('staff_activity_weeks');
