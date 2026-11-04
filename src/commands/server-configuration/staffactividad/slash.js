@@ -1,4 +1,4 @@
-const { EmbedBuilder, MessageFlags, PermissionFlagsBits, SlashCommandBuilder } = require('discord.js');
+const { ChannelType, EmbedBuilder, MessageFlags, PermissionFlagsBits, SlashCommandBuilder } = require('discord.js');
 const { STAFF_ROLE_IDS } = require('../../../constants/tickets');
 const activity = require('../../../utils/staffActivity');
 
@@ -24,8 +24,14 @@ function line(guild, member, start, goal, current, tracked, review) {
         member.permissions.has(PermissionFlagsBits.Administrator) ? '⭐ exento' :
             score >= goal ? '✅ cumplió' : current ? '⏳ en curso' : '❌ no cumplió';
     return `${roleIcon(guild, member, review?.role_id)} **${member.displayName.replace(/[*_`~|]/g, '')}** · <@${member.id}> · ${status}\n` +
-        `Semana: **${score}/${goal}** pts · ${weekly.messages} mensajes, ${weekly.claims} tickets, ${weekly.closes} cierres\n` +
-        `Total: **${activity.points(total)}** pts · ${total.messages} mensajes, ${total.claims} tickets, ${total.closes} cierres`;
+        `Semana: **${score}/${goal}** pts · ${breakdown(weekly)}\n` +
+        `Total: **${activity.points(total)}** pts · ${breakdown(total)}`;
+}
+
+function breakdown(value) {
+    return `${value.replies} respuestas · ${value.welcomes} bienvenidas · ` +
+        `${value.suggestions} sugerencias · ${value.messages} mensajes · ` +
+        `${value.claims} tickets, ${value.closes} cierres`;
 }
 
 module.exports = {
@@ -38,7 +44,10 @@ module.exports = {
                 .addChoices({ name: 'Actual', value: 'actual' }, { name: 'Anterior', value: 'anterior' })))
         .addSubcommand(sub => sub.setName('meta').setDescription('Ajusta los puntos semanales requeridos')
             .addIntegerOption(option => option.setName('puntos').setDescription('Entre 1 y 500 puntos')
-                .setRequired(true).setMinValue(1).setMaxValue(500))),
+                .setRequired(true).setMinValue(1).setMaxValue(500)))
+        .addSubcommand(sub => sub.setName('foro').setDescription('Elige el foro de sugerencias')
+            .addChannelOption(option => option.setName('canal').setDescription('Foro de sugerencias')
+                .addChannelTypes(ChannelType.GuildForum).setRequired(true))),
 
     async execute(interaction) {
         if (!interaction.inGuild() || !interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
@@ -48,6 +57,11 @@ module.exports = {
             const goal = interaction.options.getInteger('puntos', true);
             activity.setGoal(interaction.guildId, goal);
             return interaction.reply({ content: `Meta semanal actualizada a **${goal} puntos**.`, flags: MessageFlags.Ephemeral });
+        }
+        if (interaction.options.getSubcommand() === 'foro') {
+            const channel = interaction.options.getChannel('canal', true);
+            activity.setSuggestionsForum(interaction.guildId, channel.id);
+            return interaction.reply({ content: `Contaré las respuestas en ${channel} como actividad de sugerencias.`, flags: MessageFlags.Ephemeral });
         }
 
         await interaction.deferReply({ flags: MessageFlags.Ephemeral });

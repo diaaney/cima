@@ -1,6 +1,8 @@
 const { Events } = require('discord.js');
 const { getWelcomeConfig } = require('../utils/storage');
 const { getAllLevelProfiles } = require('../utils/levelSystem');
+const verificationStore = require('../utils/verificationStore');
+const staffActivity = require('../utils/staffActivity');
 
 const EMOJI_IDS = Object.freeze([
     '1559753243750309939', // esaaa
@@ -45,22 +47,28 @@ async function greetedNewcomer(message, now) {
     for (const id of targetIds) {
         if (id === message.author.id || id === message.client.user.id) continue;
         const first = recentFirstMessages.get(id);
-        if (first && now - first.at <= RECENT_FIRST_MESSAGE_MS) return true;
+        if (first && now - first.at <= RECENT_FIRST_MESSAGE_MS) return id;
         const member = await message.guild.members.fetch(id).catch(() => null);
-        if (member?.joinedTimestamp && now - member.joinedTimestamp <= RECENT_JOIN_MS) return true;
+        if (member?.joinedTimestamp && now - member.joinedTimestamp <= RECENT_JOIN_MS) return id;
+        const at = verificationStore.verifiedAt(id);
+        if (at && now - at <= RECENT_JOIN_MS) return id;
     }
 
     const welcomeChannelId = getWelcomeConfig(message.guild.id).channel_id;
     if (message.channelId !== welcomeChannelId || !isExplicitWelcome(message.content)) return false;
 
-    const recentFirst = [...recentFirstMessages].some(([id, first]) =>
+    const recentFirst = [...recentFirstMessages].find(([id, first]) =>
         id !== message.author.id && first.channelId === message.channelId && now - first.at <= CONTEXT_MS
     );
-    if (recentFirst) return true;
-    return message.guild.members.cache.some(member =>
+    if (recentFirst) return recentFirst[0];
+    const latestVerified = verificationStore.latestVerifiedUser();
+    if (latestVerified && latestVerified.userId !== message.author.id &&
+        now - latestVerified.at <= CONTEXT_MS) return latestVerified.userId;
+    const recentMember = message.guild.members.cache.find(member =>
         member.id !== message.author.id && !member.user.bot &&
         member.joinedTimestamp && now - member.joinedTimestamp <= CONTEXT_MS
     );
+    return recentMember?.id || null;
 }
 
 async function reactToWelcome(message) {
@@ -71,8 +79,10 @@ async function reactToWelcome(message) {
     }
     rememberFirstMessage(message, now);
 
-    if (!saysWlc(message.content) &&
-        (!isGreeting(message.content) || !await greetedNewcomer(message, now))) return;
+    const newcomerId = isGreeting(message.content) ? await greetedNewcomer(message, now) : null;
+    if (!saysWlc(message.content) && !newcomerId) return;
+
+    if (newcomerId) staffActivity.countWelcome(message, newcomerId);
 
     for (const emojiId of EMOJI_IDS) {
         await message.react(emojiId).catch(error => {
@@ -89,3 +99,4 @@ module.exports = client => {
 
 module.exports.saysWlc = saysWlc;
 module.exports.isGreeting = isGreeting;
+module.exports.greetedNewcomer = greetedNewcomer;

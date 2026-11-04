@@ -30,6 +30,16 @@ function isVerified(userId) {
     return Boolean(database().prepare('SELECT 1 FROM verification_verified WHERE user_id = ?').get(userId));
 }
 
+function verifiedAt(userId) {
+    const row = database().prepare('SELECT verified_at FROM verification_verified WHERE user_id = ?').get(userId);
+    return row ? Date.parse(row.verified_at) : null;
+}
+
+function latestVerifiedUser() {
+    const row = database().prepare('SELECT user_id, verified_at FROM verification_verified ORDER BY verified_at DESC LIMIT 1').get();
+    return row ? { userId: row.user_id, at: Date.parse(row.verified_at) } : null;
+}
+
 function inspect(userId, email, now = Date.now()) {
     const db = database();
     if (isVerified(userId)) return 'verified';
@@ -129,7 +139,7 @@ function markGameRolesRecovered() {
 }
 
 module.exports = {
-    inspect, begin, check, complete, cancel, read, isVerified,
+    inspect, begin, check, complete, cancel, read, isVerified, verifiedAt, latestVerifiedUser,
     getSelectedGameRoles, rememberGameRoles, clearGameRoles,
     hasRecoveredGameRoles, markGameRolesRecovered,
 };

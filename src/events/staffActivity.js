@@ -89,8 +89,8 @@ module.exports = client => {
     });
     client.on(Events.MessageCreate, message => {
         if (message.guild?.id !== process.env.GUILD_ID?.trim()) return;
-        try { activity.countMessage(message); }
-        catch (error) { console.error('[Staff activity] Could not count message:', error); }
+        void activity.countMessage(message).catch(error =>
+            console.error('[Staff activity] Could not count message:', error));
     });
     client.on(Events.GuildMemberUpdate, (before, after) => {
         if (after.guild.id !== process.env.GUILD_ID?.trim()) return;
