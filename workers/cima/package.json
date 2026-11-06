@@ -1,0 +1,15 @@
+{
+  "name": "@cima/discord-workers",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "cf dev",
+    "build": "cf build",
+    "deploy": "cf deploy"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "beta",
+    "cf": "^0.15.0",
+    "vite": "^7.1.0"
+  }
+}
