@@ -1,0 +1,47 @@
+﻿name: Back up Cima on Sparked
+
+on:
+  schedule:
+    - cron: '0 9 * * 0'
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      SPARKED_API_KEY: ${{ secrets.SPARKED_API_KEY }}
+    steps:
+      - name: Rotate panel backup
+        run: |
+          set -euo pipefail
+          test -n "$SPARKED_API_KEY"
+          api='https://control.sparkedhost.us/api/client/servers/22ba77cf'
+          auth="Authorization: Bearer $SPARKED_API_KEY"
+          files=$(curl -fsS -H "$auth" "$api/files/list?directory=%2Fdata%2Fbackups")
+          newest=$(printf '%s' "$files" | jq -r '[.data[].attributes | select(.name | test("^daily-[0-9]{8}T[0-9]{6}Z\\.sqlite$")) | .modified_at] | max // empty')
+          test -n "$newest"
+          newest_epoch=$(date -u -d "$newest" +%s)
+          now_epoch=$(date -u +%s)
+          test $((now_epoch - newest_epoch)) -lt 86400
+          existing=$(curl -fsS -H "$auth" "$api/backups" | jq -r '.data[0].attributes.uuid // empty')
+          if [ -n "$existing" ]; then
+            curl -fsS -X DELETE -H "$auth" "$api/backups/$existing"
+          fi
+          created=$(curl -fsS -X POST -H "$auth" "$api/backups" | jq -r '.attributes.uuid')
+          test -n "$created"
+          for attempt in $(seq 1 60); do
+            details=$(curl -fsS -H "$auth" "$api/backups/$created")
+            completed=$(printf '%s' "$details" | jq -r '.attributes.completed_at // empty')
+            if [ -n "$completed" ]; then
+              bytes=$(printf '%s' "$details" | jq -r '.attributes.bytes')
+              test "$bytes" -gt 0
+              echo "Sparked panel backup complete ($bytes bytes)."
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'Sparked panel backup did not complete.' >&2
+          exit 1
