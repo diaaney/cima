@@ -1,4 +1,4 @@
-﻿name: Deploy Cima to Oracle
+﻿name: Deploy Cima to Sparked
 
 on:
   push:
@@ -15,39 +15,69 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
+    env:
+      SPARKED_SERVER_ID: 22ba77cf
+      SPARKED_SFTP_HOST: v-slc-07.apollopanel.com
+      SPARKED_SFTP_USER: xxyi4hpf.22ba77cf
+      SPARKED_API_KEY: ${{ secrets.SPARKED_API_KEY }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Prepare SSH
+      - name: Prepare SFTP
         env:
-          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
-          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+          SPARKED_SFTP_KEY: ${{ secrets.SPARKED_SFTP_KEY }}
+          SPARKED_KNOWN_HOSTS: ${{ secrets.SPARKED_KNOWN_HOSTS }}
         run: |
           set -euo pipefail
+          test -n "$SPARKED_API_KEY"
+          test -n "$SPARKED_SFTP_KEY"
+          test -n "$SPARKED_KNOWN_HOSTS"
           install -m 700 -d "$HOME/.ssh"
-          printf '%s\n' "$VPS_SSH_KEY" > "$HOME/.ssh/cima_deploy"
-          printf '%s\n' "$VPS_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
-          chmod 600 "$HOME/.ssh/cima_deploy" "$HOME/.ssh/known_hosts"
+          printf '%s\n' "$SPARKED_SFTP_KEY" > "$HOME/.ssh/cima_sparked"
+          printf '%s\n' "$SPARKED_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/cima_sparked" "$HOME/.ssh/known_hosts"
 
       - name: Upload release
-        env:
-          VPS_HOST: ${{ vars.VPS_HOST }}
         run: |
           set -euo pipefail
-          test -n "$VPS_HOST"
-          tar -czf /tmp/cima-release.tar.gz --exclude=.git --exclude=.github -C "$GITHUB_WORKSPACE" .
-          scp -i "$HOME/.ssh/cima_deploy" -o BatchMode=yes -o StrictHostKeyChecking=yes \
-            /tmp/cima-release.tar.gz "ubuntu@$VPS_HOST:/home/ubuntu/cima-release.tar.gz"
-          scp -i "$HOME/.ssh/cima_deploy" -o BatchMode=yes -o StrictHostKeyChecking=yes \
-            .github/deploy.sh "ubuntu@$VPS_HOST:/home/ubuntu/cima-deploy.sh"
-          scp -i "$HOME/.ssh/cima_deploy" -o BatchMode=yes -o StrictHostKeyChecking=yes \
-            .github/cima-backup.service .github/cima-backup.timer "ubuntu@$VPS_HOST:/home/ubuntu/"
+          tar -czf /tmp/cima-release.tar.gz index.js deploy-commands.js package.json package-lock.json src
+          printf 'put /tmp/cima-release.tar.gz cima-release.tar.gz\n' |
+            sftp -q -b - -i "$HOME/.ssh/cima_sparked" -P 2022 \
+              -o BatchMode=yes -o StrictHostKeyChecking=yes \
+              "$SPARKED_SFTP_USER@$SPARKED_SFTP_HOST"
 
       - name: Activate release
-        env:
-          VPS_HOST: ${{ vars.VPS_HOST }}
         run: |
           set -euo pipefail
-          ssh -i "$HOME/.ssh/cima_deploy" -o BatchMode=yes -o StrictHostKeyChecking=yes \
-            "ubuntu@$VPS_HOST" "bash /home/ubuntu/cima-deploy.sh '$GITHUB_SHA'"
-
+          api="https://control.sparkedhost.us/api/client/servers/$SPARKED_SERVER_ID"
+          auth="Authorization: Bearer $SPARKED_API_KEY"
+          curl -fsS -X POST -H "$auth" -H 'Content-Type: application/json' \
+            -d '{"signal":"stop"}' "$api/power"
+          for attempt in $(seq 1 30); do
+            state=$(curl -fsS -H "$auth" "$api/resources" | jq -r '.attributes.current_state')
+            if [ "$state" = offline ]; then break; fi
+            sleep 2
+          done
+          test "$state" = offline
+          curl -fsS -X POST -H "$auth" -H 'Content-Type: application/json' \
+            -d '{"root":"/","file":"cima-release.tar.gz"}' "$api/files/decompress"
+          started_after=$(date -u +%s)
+          curl -fsS -X POST -H "$auth" -H 'Content-Type: application/json' \
+            -d '{"signal":"start"}' "$api/power"
+          for attempt in $(seq 1 60); do
+            state=$(curl -fsS -H "$auth" "$api/resources" | jq -r '.attributes.current_state')
+            ready=$(curl -fsS -H "$auth" \
+              "$api/files/contents?file=%2Fdata%2Fruntime-ready.json" 2>/dev/null || true)
+            ready_at=$(printf '%s' "$ready" | jq -r '.startedAt // empty' 2>/dev/null || true)
+            ready_user=$(printf '%s' "$ready" | jq -r '.userId // empty' 2>/dev/null || true)
+            if [ "$state" = running ] && [ "$ready_user" = 1558272726177947679 ] && [ -n "$ready_at" ]; then
+              ready_epoch=$(date -u -d "$ready_at" +%s)
+              if [ "$ready_epoch" -ge "$started_after" ]; then
+                echo "Cima connected to Discord on Sparked."
+                exit 0
+              fi
+            fi
+            sleep 2
+          done
+          echo "Cima did not become ready on Sparked (state: $state)." >&2
+          exit 1

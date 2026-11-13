@@ -1,7 +1,11 @@
 require('dotenv').config();
 const { Client, GatewayIntentBits, Collection } = require('discord.js');
 const path = require('path');
+const fs = require('fs');
 const { database } = require('./src/utils/database');
+
+const readyFile = path.join(__dirname, 'data', 'runtime-ready.json');
+fs.rmSync(readyFile, { force: true });
 
 if (database().prepare('PRAGMA quick_check').get().quick_check !== 'ok') {
     throw new Error('Cima SQLite database failed its startup check');

@@ -1,4 +1,6 @@
 const { ActivityType } = require('discord.js');
+const fs = require('fs');
+const path = require('path');
 
 // Rotating school-themed presences
 const STATUSES = [
@@ -17,6 +19,10 @@ const ROTATE_EVERY_MS = 30_000; // switch status every 30s
 module.exports = (client) => {
     client.once('ready', async () => {
         console.log(`✅ Cima está lista como ${client.user.tag}`);
+        fs.writeFileSync(path.join(__dirname, '..', '..', 'data', 'runtime-ready.json'), JSON.stringify({
+            startedAt: new Date().toISOString(),
+            userId: client.user.id,
+        }));
 
         let index = 0;
 
