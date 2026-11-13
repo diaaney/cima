@@ -5,6 +5,10 @@ on:
     - cron: '0 9 * * 0'
   workflow_dispatch:
 
+concurrency:
+  group: cima-production
+  cancel-in-progress: false
+
 jobs:
   backup:
     runs-on: ubuntu-latest
