@@ -1,6 +1,20 @@
 const { ActivityType } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
+const { createBackup, pruneDailyBackups } = require('../utils/backupSqlite');
+
+const BACKUP_EVERY_MS = 6 * 60 * 60 * 1000;
+
+async function backupData() {
+    const directory = path.join(__dirname, '..', '..', 'data', 'backups');
+    const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
+    try {
+        await createBackup(path.join(directory, `daily-${stamp}.sqlite`));
+        pruneDailyBackups(directory);
+    } catch (error) {
+        console.error('[Cima] No se pudo crear la copia de SQLite:', error);
+    }
+}
 
 // Rotating school-themed presences
 const STATUSES = [
@@ -23,6 +37,8 @@ module.exports = (client) => {
             startedAt: new Date().toISOString(),
             userId: client.user.id,
         }));
+        void backupData();
+        setInterval(() => void backupData(), BACKUP_EVERY_MS);
 
         let index = 0;
 
