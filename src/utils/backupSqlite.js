@@ -25,6 +25,11 @@ async function createBackup(destination) {
     } catch (error) {
         if (fs.existsSync(temporary)) fs.unlinkSync(temporary);
         throw error;
+    } finally {
+        for (const suffix of ['-shm', '-wal']) {
+            const sidecar = `${temporary}${suffix}`;
+            if (fs.existsSync(sidecar)) fs.unlinkSync(sidecar);
+        }
     }
 }
 
