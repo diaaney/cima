@@ -106,7 +106,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('staff')
         .setDescription('Actividad semanal del equipo de moderación')
-        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+        .setDefaultMemberPermissions(null)
         .addSubcommand(sub => sub.setName('activity').setDescription('Muestra la actividad semanal y total del equipo')
             .addStringOption(option => option.setName('semana').setDescription('Semana a consultar')
                 .addChoices({ name: 'Actual', value: 'actual' }, { name: 'Anterior', value: 'anterior' })))
@@ -115,10 +115,23 @@ module.exports = {
                 .setRequired(true).setMinValue(1).setMaxValue(500))),
 
     async execute(interaction) {
-        if (!interaction.inGuild() || !interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
-            return interaction.reply({ content: 'Solo un administrador puede ver la actividad del equipo.' });
+        if (!interaction.inGuild()) {
+            return interaction.reply({ content: 'Este comando solo funciona en el servidor.' });
         }
-        if (interaction.options.getSubcommand() === 'meta') {
+        const memberRoles = interaction.member?.roles;
+        const hasRole = id => memberRoles?.cache?.has(id) ||
+            (Array.isArray(memberRoles) && memberRoles.includes(id));
+        const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.Administrator) ||
+            hasRole(ADMIN_ROLE_ID);
+        const isStaff = STAFF_ROLE_IDS.some(hasRole);
+        const subcommand = interaction.options.getSubcommand();
+        if (subcommand === 'meta' && !isAdmin) {
+            return interaction.reply({ content: 'Solo un administrador puede cambiar la meta semanal.' });
+        }
+        if (subcommand === 'activity' && !isAdmin && !isStaff) {
+            return interaction.reply({ content: 'Solo el equipo de staff puede ver su actividad.' });
+        }
+        if (subcommand === 'meta') {
             const goal = interaction.options.getInteger('puntos', true);
             activity.setGoal(interaction.guildId, goal);
             return interaction.reply({ content: `Meta semanal actualizada a **${goal} puntos**.` });
