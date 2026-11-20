@@ -10,7 +10,7 @@ const {
 } = require('discord.js');
 const embeds = require('../../../constants/embeds');
 
-const GENERAL_CHANNEL_ID = '1512976564541849760';
+const PROJECTIONS_CHANNEL_ID = '1573191015987159100';
 const MODAL_ID = 'projection:submit';
 const MESSAGE_ID = 'projection:message';
 const VISIBILITY_ID = 'projection:visibility';
@@ -52,14 +52,14 @@ function projectionModal() {
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('proyectarse')
-        .setDescription('Comparte un mensaje en general, público o anónimo'),
+        .setDescription('Comparte un mensaje en proyectadas, público o anónimo'),
 
     async execute(interaction) {
         if (!interaction.inGuild() || interaction.guildId !== process.env.GUILD_ID?.trim()) {
             return interaction.reply({ content: 'Este comando solo funciona en el servidor.', flags: MessageFlags.Ephemeral });
         }
         if (isUnverified(interaction)) {
-            return interaction.reply({ content: 'Primero debes verificarte para publicar en general.', flags: MessageFlags.Ephemeral });
+            return interaction.reply({ content: 'Primero debes verificarte para publicar en proyectadas.', flags: MessageFlags.Ephemeral });
         }
         await interaction.showModal(projectionModal());
     },
@@ -69,7 +69,7 @@ module.exports = {
             return interaction.reply({ content: 'Este formulario solo funciona en el servidor.', flags: MessageFlags.Ephemeral });
         }
         if (isUnverified(interaction)) {
-            return interaction.reply({ content: 'Primero debes verificarte para publicar en general.', flags: MessageFlags.Ephemeral });
+            return interaction.reply({ content: 'Primero debes verificarte para publicar en proyectadas.', flags: MessageFlags.Ephemeral });
         }
 
         const message = interaction.fields.getTextInputValue(MESSAGE_ID).trim();
@@ -80,9 +80,9 @@ module.exports = {
 
         await interaction.deferReply({ flags: MessageFlags.Ephemeral });
         try {
-            const channel = await interaction.guild.channels.fetch(GENERAL_CHANNEL_ID);
+            const channel = await interaction.guild.channels.fetch(PROJECTIONS_CHANNEL_ID);
             if (!channel?.isTextBased() || typeof channel.send !== 'function') {
-                throw new Error('General is not a text channel');
+                throw new Error('Proyectadas is not a text channel');
             }
             const embed = new EmbedBuilder()
                 .setColor(embeds.NEUTRAL_COLOR)
@@ -100,7 +100,7 @@ module.exports = {
             });
         } catch (error) {
             console.error('[Projection] Could not publish message:', error);
-            await interaction.editReply({ content: 'No pude publicar tu mensaje en general. Inténtalo de nuevo.' });
+            await interaction.editReply({ content: 'No pude publicar tu mensaje en proyectadas. Inténtalo de nuevo.' });
         }
     },
 };
