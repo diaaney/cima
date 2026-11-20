@@ -8,6 +8,7 @@ const {
     TextInputBuilder,
     TextInputStyle,
 } = require('discord.js');
+const embeds = require('../../../constants/embeds');
 
 const GENERAL_CHANNEL_ID = '1512976564541849760';
 const MODAL_ID = 'projection:submit';
@@ -84,6 +85,7 @@ module.exports = {
                 throw new Error('General is not a text channel');
             }
             const embed = new EmbedBuilder()
+                .setColor(embeds.NEUTRAL_COLOR)
                 .setTitle(visibility === 'anonymous' ? '💭 Proyección anónima' : '💭 Proyección')
                 .setDescription(message);
             if (visibility === 'public') {
