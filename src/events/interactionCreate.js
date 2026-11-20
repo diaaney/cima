@@ -51,6 +51,21 @@ module.exports = (client) => {
     async function handleInteraction(interaction) {
         if (!interaction.isCommand() && interaction.customId?.startsWith('ticket:')) return;
 
+        if (interaction.isModalSubmit() && interaction.customId === 'projection:submit') {
+            try {
+                await client.commands.get('proyectarse').handleModal(interaction);
+            } catch (error) {
+                console.error('[Projection] Modal failed:', error);
+                const response = { content: 'No pude publicar tu mensaje. Inténtalo de nuevo.', flags: MessageFlags.Ephemeral };
+                if (interaction.deferred || interaction.replied) {
+                    await interaction.editReply({ content: response.content }).catch(() => {});
+                } else {
+                    await interaction.reply(response).catch(() => {});
+                }
+            }
+            return;
+        }
+
         // Slash command
         if (interaction.isCommand()) {
             const command = client.commands.get(interaction.commandName);
